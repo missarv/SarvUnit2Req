@@ -1,0 +1,1820 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=0.5, maximum-scale=5.0, user-scalable=yes">
+    <title>SARV INDIA UNIT-2 - Item Requirement Entry &amp; Tracker (v2.3 - PDF)</title>
+    <style>
+        :root {
+            --primary-gradient: linear-gradient(180deg, #0d5c53 0%, #083e38 100%);
+            --secondary-color: #009688;
+            --bg-color: #f8fafc;
+            --card-bg: #ffffff;
+            --text-color: #1e293b;
+            --border-color: #cbd5e1;
+            --input-bg: #f8fafc;
+            --shadow-3d: 0 4px 6px -1px rgba(0, 0, 0, 0.08), 0 2px 4px -1px rgba(0, 0, 0, 0.04), inset 0 -2px 0 0 rgba(0,0,0,0.1);
+            --btn-success-grad: linear-gradient(180deg, #10b981 0%, #047857 100%);
+            --btn-primary-grad: linear-gradient(180deg, #0284c7 0%, #0369a1 100%);
+            --btn-danger-grad: linear-gradient(180deg, #ef4444 0%, #b91c1c 100%);
+            --btn-neutral-grad: linear-gradient(180deg, #64748b 0%, #475569 100%);
+            --btn-warn-grad: linear-gradient(180deg, #f59e0b 0%, #b45309 100%);
+        }
+
+        * { box-sizing: border-box; }
+
+        html, body {
+            min-height: 100vh;
+            margin: 0;
+            padding: 0;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+        }
+
+        body { display: flex; flex-direction: column; }
+
+        header {
+            background: linear-gradient(180deg, #0f172a 0%, #1e293b 100%);
+            color: white;
+            padding: 0 25px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            height: 55px;
+            flex-shrink: 0;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            border-bottom: 1px solid #334155;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        header h1 {
+            margin: 0;
+            font-size: 18px;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+        }
+        header h1 span { color: #38bdf8; }
+
+        .nav-tabs {
+            display: flex;
+            gap: 6px;
+            margin-left: 25px;
+        }
+
+        .nav-link {
+            color: #94a3b8;
+            padding: 6px 14px;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 600;
+            transition: all 0.2s;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .nav-link:hover { color: #cbd5e1; background: rgba(255,255,255,0.04); }
+
+        .nav-link.active {
+            background: rgba(255, 255, 255, 0.1);
+            color: #fff;
+            box-shadow: inset 0 1px 2px rgba(255,255,255,0.2);
+            border: 1px solid rgba(255,255,255,0.15);
+        }
+
+        .header-right {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            font-size: 12px;
+            color: #94a3b8;
+        }
+
+        .header-right .live-clock {
+            background: rgba(255,255,255,0.06);
+            padding: 5px 12px;
+            border-radius: 6px;
+            border: 1px solid rgba(255,255,255,0.1);
+            font-weight: 600;
+            color: #e2e8f0;
+        }
+
+        .header-right .sync-status {
+            padding: 5px 12px;
+            border-radius: 6px;
+            font-weight: 700;
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .sync-status.online  { background: #064e3b; color: #6ee7b7; border:1px solid #047857; }
+        .sync-status.offline { background: #7f1d1d; color: #fecaca; border:1px solid #dc2626; }
+        .sync-status.checking{ background: #1e3a8a; color: #93c5fd; border:1px solid #2563eb; }
+
+        .container {
+            flex: 1;
+            padding: 15px;
+            max-width: 1500px;
+            width: 100%;
+            margin: 0 auto;
+        }
+
+        .card {
+            background: var(--card-bg);
+            border-radius: 10px;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.05);
+            padding: 18px;
+            border: 1px solid #e2e8f0;
+            position: relative;
+        }
+
+        .panel-title {
+            font-size: 16px;
+            font-weight: 800;
+            color: #0f172a;
+            margin: 0;
+            letter-spacing: 0.5px;
+        }
+
+        .panel-subtitle {
+            font-size: 11px;
+            color: #64748b;
+            margin-bottom: 15px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .autosave-tag {
+            position: absolute;
+            top: 14px;
+            right: 16px;
+            font-size: 10px;
+            color: #047857;
+            background: #d1fae5;
+            padding: 3px 10px;
+            border-radius: 12px;
+            font-weight: 700;
+            border: 1px solid #6ee7b7;
+        }
+
+        .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 12px; }
+        .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 12px; }
+        .grid-5 { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; margin-bottom: 12px; }
+
+        @media (max-width: 900px) {
+            .grid-4, .grid-5 { grid-template-columns: repeat(2, 1fr); }
+            .grid-3 { grid-template-columns: 1fr; }
+            .nav-tabs { margin-left: 8px; }
+            header h1 { font-size: 14px; }
+        }
+
+        .form-group { display: flex; flex-direction: column; gap: 5px; }
+        .form-group label {
+            font-size: 10px;
+            font-weight: 700;
+            color: #475569;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+        .form-group label .req { color: #dc2626; margin-left: 2px; }
+
+        .form-control {
+            padding: 6px 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            font-size: 13px;
+            color: var(--text-color);
+            background-color: var(--input-bg);
+            outline: none;
+            height: 34px;
+            font-weight: 500;
+            box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.04);
+            transition: all 0.2s ease;
+            width: 100%;
+        }
+        .form-control:focus {
+            border-color: var(--secondary-color);
+            box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.04), 0 0 0 3px rgba(0,150,136,0.15);
+        }
+        textarea.form-control {
+            height: auto;
+            min-height: 60px;
+            resize: vertical;
+            padding: 8px 12px;
+        }
+
+        .section-header-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 8px;
+            margin-bottom: 10px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        .section-title {
+            font-size: 13px;
+            font-weight: 800;
+            color: #0f172a;
+            margin: 0;
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
+            border-left: 4px solid var(--secondary-color);
+            padding-left: 8px;
+        }
+
+        .btn {
+            padding: 6px 14px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 700;
+            border: none;
+            cursor: pointer;
+            color: white;
+            box-shadow: var(--shadow-3d);
+            transition: transform 0.1s ease, filter 0.2s ease;
+            letter-spacing: 0.3px;
+        }
+        .btn:hover { filter: brightness(1.08); }
+        .btn:active { transform: translateY(1px); }
+        .btn:disabled { opacity: 0.55; cursor: not-allowed; filter: grayscale(0.4); }
+        .btn-sm { padding: 4px 10px; font-size: 11px; }
+
+        .btn-primary { background: var(--btn-primary-grad); }
+        .btn-success { background: var(--btn-success-grad); }
+        .btn-danger { background: var(--btn-danger-grad); }
+        .btn-neutral { background: var(--btn-neutral-grad); }
+        .btn-warn    { background: var(--btn-warn-grad); }
+
+        .items-total-strip {
+            display: flex;
+            gap: 12px;
+            margin: 8px 0 12px 0;
+            flex-wrap: wrap;
+        }
+        .totals-pill {
+            background: #f1f5f9;
+            border: 1px solid #e2e8f0;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 11px;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 600;
+        }
+        .totals-pill .lbl { color: #64748b; text-transform: uppercase; letter-spacing: 0.3px; }
+        .totals-pill .val { color: #0f172a; font-weight: 800; font-size: 13px; }
+        .totals-pill.highlight { background: #ecfeff; border-color: #67e8f9; }
+        .totals-pill.urgent { background: #fef2f2; border-color: #fca5a5; }
+        .totals-pill.urgent .val { color: #b91c1c; }
+        .totals-pill.success { background: #ecfdf5; border-color: #6ee7b7; }
+        .totals-pill.success .val { color: #047857; }
+
+        .table-container {
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            overflow: auto;
+            max-height: 420px;
+        }
+        table { width: 100%; border-collapse: collapse; font-size: 12px; }
+        thead { background: #f1f5f9; position: sticky; top: 0; z-index: 5; }
+        th {
+            padding: 8px 6px;
+            text-align: left;
+            font-weight: 700;
+            color: #334155;
+            text-transform: uppercase;
+            font-size: 10px;
+            letter-spacing: 0.3px;
+            border-bottom: 1px solid #cbd5e1;
+            white-space: nowrap;
+        }
+        td { padding: 4px 5px; border-bottom: 1px solid #f1f5f9; vertical-align: middle; }
+        tbody tr:hover { background: #f8fafc; }
+
+        .table-input, .table-select {
+            width: 100%;
+            padding: 5px 7px;
+            border: 1px solid #e2e8f0;
+            border-radius: 4px;
+            font-size: 12px;
+            background: #fff;
+            outline: none;
+            height: 28px;
+            font-weight: 500;
+        }
+        .table-input:focus, .table-select:focus {
+            border-color: var(--secondary-color);
+            box-shadow: 0 0 0 2px rgba(0,150,136,0.15);
+        }
+        .table-input[readonly] { background:#f1f5f9; color:#64748b; }
+
+        .delete-row-btn {
+            background: transparent;
+            color: #dc2626;
+            border: none;
+            font-size: 18px;
+            cursor: pointer;
+            padding: 0 6px;
+            line-height: 1;
+        }
+        .delete-row-btn:hover { color: #991b1b; }
+
+        .sr-cell {
+            text-align: center;
+            font-weight: 700;
+            color: #475569;
+            font-size: 11px;
+        }
+
+        /* Status badges */
+        .badge {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 10px;
+            font-size: 10px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
+            white-space: nowrap;
+        }
+        .badge-pending     { background:#e0e7ff; color:#3730a3; }
+        .badge-partial     { background:#fef3c7; color:#b45309; }
+        .badge-fulfilled,
+        .badge-fully       { background:#d1fae5; color:#047857; }
+        .badge-progress    { background:#fef3c7; color:#b45309; }
+        .badge-closed      { background:#cbd5e1; color:#1e293b; }
+        .badge-cancelled   { background:#fee2e2; color:#b91c1c; }
+        .badge-normal      { background:#d1fae5; color:#047857; }
+        .badge-urgent      { background:#fef3c7; color:#b45309; }
+        .badge-critical    { background:#fee2e2; color:#b91c1c; }
+
+        /* Toast */
+        #toastContainer {
+            position: fixed;
+            top: 70px;
+            right: 20px;
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .toast {
+            background: #1e293b;
+            color: white;
+            padding: 10px 16px;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 600;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+            min-width: 250px;
+            max-width: 400px;
+            animation: slideIn 0.3s ease;
+            border-left: 4px solid #38bdf8;
+        }
+        .toast.success { border-left-color: #10b981; }
+        .toast.warn    { border-left-color: #f59e0b; }
+        .toast.error   { border-left-color: #ef4444; }
+        @keyframes slideIn {
+            from { transform: translateX(120%); opacity: 0; }
+            to   { transform: translateX(0); opacity: 1; }
+        }
+
+        .footer-actions {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 15px;
+            padding-top: 12px;
+            border-top: 1px solid #e2e8f0;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .footer-actions .left-group, .footer-actions .right-group {
+            display: flex; gap: 10px; align-items: center;
+        }
+        .draft-info { font-size: 11px; color: #64748b; font-style: italic; }
+
+        /* Modal */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(15,23,42,0.6);
+            z-index: 9000;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .modal-overlay.active { display: flex; }
+        .modal-box {
+            background: white;
+            border-radius: 12px;
+            padding: 22px 24px;
+            max-width: 520px;
+            width: 100%;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.3);
+        }
+        .modal-box.lg { max-width: 720px; }
+        .modal-title {
+            font-size: 16px;
+            font-weight: 800;
+            color: #0f172a;
+            margin: 0 0 4px 0;
+        }
+        .modal-sub { font-size: 12px; color: #64748b; margin-bottom: 14px; }
+        .modal-summary {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 12px 14px;
+            font-size: 12px;
+            max-height: 280px;
+            overflow-y: auto;
+            margin-bottom: 14px;
+        }
+        .modal-summary .row { display: flex; justify-content: space-between; padding: 3px 0; }
+        .modal-summary .row .lbl { color: #64748b; font-weight: 600; }
+        .modal-summary .row .val { color: #0f172a; font-weight: 700; }
+
+        .modal-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 8px;
+        }
+
+        /* Sync overlay */
+        .sync-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(15,23,42,0.55);
+            z-index: 9500;
+            align-items: center;
+            justify-content: center;
+            backdrop-filter: blur(2px);
+        }
+        .sync-overlay.active { display: flex; }
+        .sync-box {
+            background: white;
+            border-radius: 12px;
+            padding: 25px 35px;
+            text-align: center;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.3);
+        }
+        .sync-spinner {
+            width: 40px; height: 40px;
+            border: 4px solid #e2e8f0;
+            border-top-color: var(--secondary-color);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin: 0 auto 12px;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .sync-msg { font-weight: 700; color: #0f172a; font-size: 14px; }
+
+        /* Setup-needed banner - shows only if URL is blank */
+        .setup-banner {
+            background: linear-gradient(180deg, #fef3c7 0%, #fde68a 100%);
+            border: 2px dashed #b45309;
+            color: #78350f;
+            padding: 16px 20px;
+            border-radius: 10px;
+            margin-bottom: 15px;
+            font-size: 13px;
+            line-height: 1.6;
+        }
+        .setup-banner b { font-size: 14px; color: #92400e; }
+        .setup-banner code {
+            background: #1e293b;
+            color: #fbbf24;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            display: inline-block;
+            margin: 2px 0;
+        }
+        .setup-banner ol { margin: 8px 0 0 0; padding-left: 22px; }
+        .setup-banner ol li { margin-bottom: 4px; }
+
+        /* Manage Tab */
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+
+        .filter-bar {
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr 1fr 1fr auto;
+            gap: 10px;
+            margin-bottom: 14px;
+            align-items: end;
+        }
+        @media (max-width: 900px) {
+            .filter-bar { grid-template-columns: 1fr 1fr; }
+        }
+
+        .req-list-table th, .req-list-table td { white-space: nowrap; }
+        .req-row { cursor: pointer; }
+        .req-row:hover { background: #ecfeff; }
+        .req-row.selected { background: #e0f2fe; }
+
+        /* Detail panel */
+        .detail-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr 1fr;
+            gap: 10px 16px;
+            font-size: 12px;
+            margin-bottom: 12px;
+        }
+        @media (max-width: 900px) {
+            .detail-grid { grid-template-columns: 1fr 1fr; }
+        }
+        .detail-grid .field { display: flex; flex-direction: column; gap: 2px; }
+        .detail-grid .field .lbl {
+            font-size: 9px;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
+            font-weight: 700;
+        }
+        .detail-grid .field .val {
+            font-size: 13px;
+            color: #0f172a;
+            font-weight: 600;
+            min-height: 18px;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 50px 20px;
+            color: #94a3b8;
+            font-size: 13px;
+        }
+        .empty-state .ico { font-size: 40px; margin-bottom: 10px; opacity: 0.5; }
+
+        .col-issued-input {
+            width: 60px !important;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>SARV <span>INDIA</span></h1>
+        <div class="nav-tabs">
+            <div class="nav-link active" data-tab="entry">📝 New Entry</div>
+            <div class="nav-link" data-tab="manage">📋 Manage &amp; Update</div>
+        </div>
+        <div class="header-right">
+            <span class="sync-status checking" id="syncStatus">Checking...</span>
+            <span class="live-clock" id="liveClock">--:--:--</span>
+        </div>
+    </header>
+
+    <div class="container">
+
+        <!-- ================== TAB 1: NEW ENTRY ================== -->
+        <div class="tab-content active" id="tab-entry">
+
+            <!-- Setup banner - auto-shows ONLY if APPS_SCRIPT_URL is empty -->
+            <div class="setup-banner" id="setupBanner" style="display:none;">
+                <b>⚠️ Setup Required:</b> Apps Script URL configured nahi hai. HTML file me edit karke daalo:
+                <ol>
+                    <li>Is HTML file ko Notepad / VS Code me kholo</li>
+                    <li><code>&lt;script&gt;</code> tag ke andar yeh line dhundo: <code>const APPS_SCRIPT_URL = "";</code></li>
+                    <li>Apna deployed Apps Script URL quotes ke andar paste karo</li>
+                    <li>Save karke browser refresh karo</li>
+                </ol>
+            </div>
+
+            <div class="card">
+                <div class="autosave-tag">&#128274; Draft Auto-Saved</div>
+                <h2 class="panel-title">PERSONNEL ITEM REQUIREMENT FORM</h2>
+                <div class="panel-subtitle">Capture requested items &middot; Auto-sync to Google Sheets</div>
+
+                <div class="section-header-row">
+                    <h3 class="section-title">Request Details</h3>
+                </div>
+
+                <div class="grid-4">
+                    <div class="form-group">
+                        <label>Date <span class="req">*</span></label>
+                        <input type="date" class="form-control" id="reqDate">
+                    </div>
+                    <div class="form-group">
+                        <label>Requirement No. (Auto)</label>
+                        <input type="text" class="form-control" id="reqNoField" placeholder="Auto" disabled style="font-weight:700; background-color:#f1f5f9; color:#0284c7;">
+                    </div>
+                    <div class="form-group">
+                        <label>Required By Date <span class="req">*</span></label>
+                        <input type="date" class="form-control" id="requiredByDate">
+                    </div>
+                    <div class="form-group">
+                        <label>Priority <span class="req">*</span></label>
+                        <select class="form-control" id="priority">
+                            <option value="Normal">&#128994; Normal</option>
+                            <option value="Urgent">&#128993; Urgent</option>
+                            <option value="Critical">&#128308; Critical</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="section-header-row">
+                    <h3 class="section-title">Requested By</h3>
+                </div>
+
+                <div class="grid-4">
+                    <div class="form-group">
+                        <label>Person Name <span class="req">*</span></label>
+                        <input type="text" class="form-control" id="reqPersonName" placeholder="Full name of requester">
+                    </div>
+                    <div class="form-group">
+                        <label>Employee Code</label>
+                        <input type="text" class="form-control" id="reqEmpCode" placeholder="e.g. EMP-0234">
+                    </div>
+                    <div class="form-group">
+                        <label>Designation</label>
+                        <input type="text" class="form-control" id="reqDesignation" placeholder="e.g. Production Supervisor">
+                    </div>
+                    <div class="form-group">
+                        <label>Department <span class="req">*</span></label>
+                        <select class="form-control" id="reqDepartment">
+                            <option value="">-- Select --</option>
+                            <option>Weaving</option>
+                            <option>Dyeing</option>
+                            <option>Finishing</option>
+                            <option>Raising</option>
+                            <option>Cutting / Stitching</option>
+                            <option>Packing</option>
+                            <option>Quality Control</option>
+                            <option>Maintenance</option>
+                            <option>Store</option>
+                            <option>Dispatch</option>
+                            <option>Admin / HR</option>
+                            <option>Accounts</option>
+                            <option>Other</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="grid-3">
+                    <div class="form-group">
+                        <label>Contact No.</label>
+                        <input type="tel" class="form-control" id="reqContact" placeholder="10-digit mobile" maxlength="15">
+                    </div>
+                    <div class="form-group">
+                        <label>Machine / Line (if applicable)</label>
+                        <input type="text" class="form-control" id="reqMachine" placeholder="e.g. Raising M/C #3 or Loom-12">
+                    </div>
+                    <div class="form-group">
+                        <label>Purpose / Reason <span class="req">*</span></label>
+                        <input type="text" class="form-control" id="reqPurpose" placeholder="e.g. Loom maintenance, sample run">
+                    </div>
+                </div>
+
+                <div class="section-header-row">
+                    <h3 class="section-title">Items Required</h3>
+                    <button class="btn btn-primary" id="addItemBtn">+ Add New Item</button>
+                </div>
+
+                <div class="items-total-strip">
+                    <span class="totals-pill"><span class="lbl">Total Items</span><span class="val" id="totalItemCount">0</span></span>
+                    <span class="totals-pill highlight"><span class="lbl">Total Qty</span><span class="val" id="totalQty">0</span></span>
+                    <span class="totals-pill urgent" id="urgentPill" style="display:none;"><span class="lbl">Priority</span><span class="val" id="priorityBadge">--</span></span>
+                </div>
+
+                <div class="table-container">
+                    <table id="itemsTable">
+                        <thead>
+                            <tr>
+                                <th style="width: 4%; text-align: center;">Sr.</th>
+                                <th style="width: 16%;">Item Name <span style="color:#dc2626;">*</span></th>
+                                <th style="width: 22%;">Item Description / Spec</th>
+                                <th style="width: 11%;">MAKE / Brand</th>
+                                <th style="width: 12%;">Category</th>
+                                <th style="width: 8%;">Qty <span style="color:#dc2626;">*</span></th>
+                                <th style="width: 8%;">UOM</th>
+                                <th style="width: 15%;">Item Remarks</th>
+                                <th style="width: 4%;"></th>
+                            </tr>
+                        </thead>
+                        <tbody id="itemTableBody"></tbody>
+                    </table>
+                </div>
+
+                <div class="form-group" style="margin-top: 14px;">
+                    <label>Overall Remarks (optional)</label>
+                    <textarea class="form-control" id="overallRemarks" rows="2" placeholder="Any additional note about this requirement..."></textarea>
+                </div>
+
+                <div class="footer-actions">
+                    <div class="left-group">
+                        <span class="draft-info" id="draftInfo">No draft saved yet.</span>
+                    </div>
+                    <div class="right-group">
+                        <button class="btn btn-neutral" id="clearBtn">&#128465; Clear Form</button>
+                        <button class="btn btn-primary" id="exportCsvBtn">&#128190; Export CSV</button>
+                        <button class="btn btn-success" id="submitBtn">&#9989; Submit &amp; Sync</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ================== TAB 2: MANAGE & UPDATE ================== -->
+        <div class="tab-content" id="tab-manage">
+            <div class="card">
+                <h2 class="panel-title">REQUIREMENTS MANAGEMENT &amp; STATUS UPDATE</h2>
+                <div class="panel-subtitle">Search, view &amp; update fulfillment status of all submitted requirements</div>
+
+                <div class="filter-bar">
+                    <div class="form-group">
+                        <label>Search (Req No / Person / Purpose)</label>
+                        <input type="text" class="form-control" id="filterSearch" placeholder="e.g. REQ-20251101 or Rajesh">
+                    </div>
+                    <div class="form-group">
+                        <label>Status</label>
+                        <select class="form-control" id="filterStatus">
+                            <option value="">All</option>
+                            <option>Pending</option>
+                            <option>In Progress</option>
+                            <option>Fulfilled</option>
+                            <option>Closed</option>
+                            <option>Cancelled</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Department</label>
+                        <select class="form-control" id="filterDept">
+                            <option value="">All</option>
+                            <option>Weaving</option><option>Dyeing</option><option>Finishing</option>
+                            <option>Raising</option><option>Cutting / Stitching</option><option>Packing</option>
+                            <option>Quality Control</option><option>Maintenance</option><option>Store</option>
+                            <option>Dispatch</option><option>Admin / HR</option><option>Accounts</option>
+                            <option>Other</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Priority</label>
+                        <select class="form-control" id="filterPriority">
+                            <option value="">All</option>
+                            <option>Normal</option><option>Urgent</option><option>Critical</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>From Date</label>
+                        <input type="date" class="form-control" id="filterFrom">
+                    </div>
+                    <div>
+                        <button class="btn btn-primary" id="refreshListBtn" style="height: 34px;">&#128260; Reload</button>
+                    </div>
+                </div>
+
+                <div class="items-total-strip">
+                    <span class="totals-pill"><span class="lbl">Showing</span><span class="val" id="listCount">0</span></span>
+                    <span class="totals-pill" id="pillPending" style="display:none;background:#e0e7ff;border-color:#a5b4fc;"><span class="lbl">Pending</span><span class="val" id="cntPending">0</span></span>
+                    <span class="totals-pill" id="pillProgress" style="display:none;background:#fef3c7;border-color:#fcd34d;"><span class="lbl">In Progress</span><span class="val" id="cntProgress">0</span></span>
+                    <span class="totals-pill success" id="pillFulfilled" style="display:none;"><span class="lbl">Fulfilled</span><span class="val" id="cntFulfilled">0</span></span>
+                </div>
+
+                <div class="table-container" style="max-height: 320px;">
+                    <table class="req-list-table">
+                        <thead>
+                            <tr>
+                                <th>Req No</th>
+                                <th>Date</th>
+                                <th>Person</th>
+                                <th>Department</th>
+                                <th>Purpose</th>
+                                <th style="text-align:center;">Items</th>
+                                <th style="text-align:center;">Qty</th>
+                                <th style="text-align:center;">Issued</th>
+                                <th>Priority</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="reqListBody"></tbody>
+                    </table>
+                </div>
+
+                <!-- Detail panel -->
+                <div id="detailPanel" style="margin-top: 18px; display:none;">
+                    <div class="section-header-row">
+                        <h3 class="section-title" id="detailTitle">Requirement Details</h3>
+                        <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+                            <span id="detailMasterStatus"></span>
+                            <button class="btn btn-primary btn-sm" id="openPdfBtn" title="Open PDF (print)">&#128196; Print PDF</button>
+                            <button class="btn btn-neutral btn-sm" id="regenPdfBtn" title="Regenerate PDF with latest data">&#128260; Regen PDF</button>
+                            <button class="btn btn-warn btn-sm" id="closeMasterBtn">&#128274; Mark Closed</button>
+                            <button class="btn btn-danger btn-sm" id="cancelMasterBtn">&#10060; Cancel Requirement</button>
+                        </div>
+                    </div>
+
+                    <div class="detail-grid" id="detailGrid"></div>
+
+                    <div class="section-header-row" style="margin-top: 8px;">
+                        <h4 class="section-title" style="font-size:12px;">Items - Update Status</h4>
+                        <div style="display:flex; gap:8px; align-items:center;">
+                            <input type="text" class="form-control" id="updatedByField" placeholder="Your Name (issued by)" style="width: 180px; height: 28px; font-size: 12px;">
+                            <button class="btn btn-success btn-sm" id="saveAllItemsBtn">&#128190; Save All Changes</button>
+                        </div>
+                    </div>
+
+                    <div class="table-container" style="max-height: 380px;">
+                        <table id="detailItemsTable">
+                            <thead>
+                                <tr>
+                                    <th style="width: 4%; text-align:center;">Sr.</th>
+                                    <th style="width: 18%;">Item Name</th>
+                                    <th style="width: 20%;">Description</th>
+                                    <th style="width: 8%; text-align:center;">Req Qty</th>
+                                    <th style="width: 8%; text-align:center;">Issued</th>
+                                    <th style="width: 6%;">UOM</th>
+                                    <th style="width: 14%;">Status</th>
+                                    <th style="width: 18%;">Issue Remarks</th>
+                                    <th style="width: 4%;"></th>
+                                </tr>
+                            </thead>
+                            <tbody id="detailItemsBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div id="detailEmpty" class="empty-state" style="margin-top:14px;">
+                    <div class="ico">📋</div>
+                    <div>Select a row above to view items &amp; update status</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============ CONFIRM MODAL ============ -->
+    <div class="modal-overlay" id="confirmModal">
+        <div class="modal-box">
+            <h3 class="modal-title">&#128221; Confirm Requirement Submission</h3>
+            <p class="modal-sub">Review summary &middot; on confirm, data syncs to Google Sheets.</p>
+            <div class="modal-summary" id="modalSummary"></div>
+            <div class="modal-actions">
+                <button class="btn btn-neutral" id="modalCancelBtn">Cancel</button>
+                <button class="btn btn-success" id="modalConfirmBtn">&#9989; Confirm &amp; Sync</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============ MASTER ACTION MODAL ============ -->
+    <div class="modal-overlay" id="masterActionModal">
+        <div class="modal-box">
+            <h3 class="modal-title" id="masterActionTitle">Action</h3>
+            <p class="modal-sub" id="masterActionSub"></p>
+            <div class="form-group">
+                <label>Remarks <span class="req">*</span></label>
+                <textarea class="form-control" id="masterActionRemarks" rows="2" placeholder="Reason / closing note..."></textarea>
+            </div>
+            <div class="form-group">
+                <label>Updated By</label>
+                <input type="text" class="form-control" id="masterActionBy" placeholder="Your name">
+            </div>
+            <div class="modal-actions" style="margin-top: 12px;">
+                <button class="btn btn-neutral" id="masterActionCancelBtn">Cancel</button>
+                <button class="btn btn-success" id="masterActionConfirmBtn">Confirm</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============ SYNC OVERLAY ============ -->
+    <div class="sync-overlay" id="syncOverlay">
+        <div class="sync-box">
+            <div class="sync-spinner"></div>
+            <div class="sync-msg" id="syncMsg">Syncing to Google Sheets...</div>
+        </div>
+    </div>
+
+    <div id="toastContainer"></div>
+
+    <script>
+    /* ═══════════════════════════════════════════════════════════════════
+       ███████████████████████████████████████████████████████████████████
+       ██                                                               ██
+       ██   🔧 SETUP: APPS SCRIPT URL YAHAN PASTE KARO 🔧               ██
+       ██                                                               ██
+       ██   Niche wali line me apna deployed Apps Script URL daalo.     ██
+       ██   URL ka format aisa hota hai:                                ██
+       ██   https://script.google.com/macros/s/AKfycby....../exec       ██
+       ██                                                               ██
+       ███████████████████████████████████████████████████████████████████
+       ═══════════════════════════════════════════════════════════════════ */
+
+    const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxofR8KXv3zRA2KgJEjvtk1JwbpIjeqecqEDDnlTfnpH9ujqSI3jMiEyMVZTjY1DD9sTA/exec";
+
+    /* ═══════════════════════════════════════════════════════════════════
+       ⬆️ Bas yahi ek line edit karni hai - aage kuch chedhna nahi. ⬆️
+       ═══════════════════════════════════════════════════════════════════ */
+
+
+    /* ---------- INTERNAL CONSTANTS ---------- */
+    const DRAFT_KEY      = 'sarv_item_req_draft_v1';
+    const COUNTER_KEY    = 'sarv_item_req_counter_v1';
+    const SUBMITTED_KEY  = 'sarv_item_req_submitted_v1';
+    const PENDING_KEY    = 'sarv_pending_sync_queue_v1';
+    const UPDATED_BY_KEY = 'sarv_updated_by_v1';
+
+    // Detect if URL is set & valid
+    const URL_IS_CONFIGURED = (function(){
+        const u = String(APPS_SCRIPT_URL || '').trim();
+        if (!u) return false;
+        if (u === 'PASTE_YOUR_APPS_SCRIPT_URL_HERE') return false;
+        return /^https:\/\/script\.google\.com\/macros\/s\/[^\/]+\/exec/.test(u);
+    })();
+
+    let CURRENT_DETAIL = null;
+    let MASTER_ACTION_TYPE = null;
+
+    /* ---------- UTILITIES ---------- */
+    function $(id){ return document.getElementById(id); }
+
+    function showToast(msg, type='success', ms=3500){
+        const c = $('toastContainer');
+        const t = document.createElement('div');
+        t.className = 'toast ' + type;
+        t.innerHTML = msg;
+        c.appendChild(t);
+        setTimeout(()=>{ t.style.opacity='0'; t.style.transform='translateX(120%)'; }, ms-300);
+        setTimeout(()=> t.remove(), ms);
+    }
+
+    function pad(n,w=2){ return String(n).padStart(w,'0'); }
+    function todayISO(){ const d=new Date(); return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate()); }
+
+    function generateReqNo(){
+        const d=new Date();
+        const ymd = d.getFullYear()+pad(d.getMonth()+1)+pad(d.getDate());
+        let counterData = {};
+        try { counterData = JSON.parse(localStorage.getItem(COUNTER_KEY) || '{}'); } catch(e){}
+        const next = (counterData[ymd] || 0) + 1;
+        return 'PR' + ymd + '-' + pad(next, 4);
+    }
+
+    function bumpCounter(){
+        const d=new Date();
+        const ymd = d.getFullYear()+pad(d.getMonth()+1)+pad(d.getDate());
+        let counterData = {};
+        try { counterData = JSON.parse(localStorage.getItem(COUNTER_KEY) || '{}'); } catch(e){}
+        counterData[ymd] = (counterData[ymd] || 0) + 1;
+        localStorage.setItem(COUNTER_KEY, JSON.stringify(counterData));
+    }
+
+    function escapeHtml(s){
+        return String(s||'')
+            .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+            .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+    }
+
+    /* ---------- CLOCK ---------- */
+    function tickClock(){
+        const d=new Date();
+        $('liveClock').textContent =
+            pad(d.getHours())+':'+pad(d.getMinutes())+':'+pad(d.getSeconds());
+    }
+    setInterval(tickClock,1000); tickClock();
+
+    /* ---------- TAB SWITCHING ---------- */
+    document.querySelectorAll('.nav-link').forEach(link => {
+        link.addEventListener('click', () => {
+            const tab = link.dataset.tab;
+            document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+            link.classList.add('active');
+            $('tab-' + tab).classList.add('active');
+            if (tab === 'manage') loadRequirementsList();
+        });
+    });
+
+    /* ---------- BACKEND VERIFICATION ---------- */
+    async function verifyBackend(){
+        if (!URL_IS_CONFIGURED) {
+            $('syncStatus').innerHTML = 'NOT CONFIGURED';
+            $('syncStatus').className = 'sync-status offline';
+            $('setupBanner').style.display = 'block';
+            return;
+        }
+        const el = $('syncStatus');
+        el.textContent = 'CHECKING...'; el.className = 'sync-status checking';
+        try {
+            const res = await fetch(APPS_SCRIPT_URL, { method:'GET', redirect:'follow' });
+            const text = await res.text();
+            let json = null;
+            try { json = JSON.parse(text); } catch(e){}
+            if (json && json.ok){
+                el.innerHTML = '&#9679; SHEET ONLINE';
+                el.className = 'sync-status online';
+                showToast('&#9989; Connected: <b>'+escapeHtml(json.spreadsheet||'')+'</b>', 'success', 3500);
+            } else {
+                el.innerHTML = '&#9679; ERROR';
+                el.className = 'sync-status offline';
+                showToast('&#9888; Backend response invalid. Check Apps Script logs.', 'warn', 6000);
+            }
+        } catch(err){
+            el.innerHTML = '&#9679; OFFLINE';
+            el.className = 'sync-status offline';
+            showToast('&#10060; Cannot reach Apps Script: '+ err.message, 'error', 6000);
+        }
+    }
+
+    /* ---------- ITEM ROW (ENTRY TAB) ---------- */
+    const CATEGORIES = ['-- Select --','Raw Material - Yarn','Raw Material - Fabric','Raw Material - Dyes/Chemicals','Packing Material','Spare Parts','Consumables','Tools / Equipment','Stationery','Safety / PPE','Electrical','Other'];
+    const UOMS = ['Pcs','Kg','Gm','Mtr','Ltr','Box','Roll','Set','Bag','Pkt','Pair','Other'];
+
+    function buildCatOptions(selected){
+        return CATEGORIES.map(c => {
+            const v = (c === '-- Select --') ? '' : c;
+            const sel = (v === selected) ? 'selected' : '';
+            return '<option value="'+v+'" '+sel+'>'+c+'</option>';
+        }).join('');
+    }
+    function buildUomOptions(selected){
+        return UOMS.map(u => {
+            const sel = (u === selected) ? 'selected' : '';
+            return '<option value="'+u+'" '+sel+'>'+u+'</option>';
+        }).join('');
+    }
+
+    function addItemRow(data){
+        data = data || {};
+        const tbody = $('itemTableBody');
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td class="sr-cell"></td>
+            <td><input type="text" class="table-input col-name" placeholder="Item Name" value="${escapeHtml(data.itemName||'')}"></td>
+            <td><input type="text" class="table-input col-desc" placeholder="Detailed spec / size / color" value="${escapeHtml(data.itemDesc||'')}"></td>
+            <td><input type="text" class="table-input col-make" placeholder="Make / Brand" value="${escapeHtml(data.make||'')}"></td>
+            <td><select class="table-select col-cat">${buildCatOptions(data.category||'')}</select></td>
+            <td><input type="number" class="table-input col-qty" placeholder="0" min="0" step="any" value="${data.qty||''}"></td>
+            <td><select class="table-select col-uom">${buildUomOptions(data.uom||'Pcs')}</select></td>
+            <td><input type="text" class="table-input col-rem" placeholder="optional note" value="${escapeHtml(data.remarks||'')}"></td>
+            <td style="text-align:center;"><button class="delete-row-btn" title="Remove">&times;</button></td>
+        `;
+        tbody.appendChild(tr);
+
+        tr.querySelector('.delete-row-btn').addEventListener('click', ()=>{
+            tr.remove();
+            refreshSerials();
+            recalcTotals();
+            saveDraft();
+        });
+        tr.querySelectorAll('input,select').forEach(el=>{
+            el.addEventListener('input', ()=>{ recalcTotals(); saveDraft(); });
+            el.addEventListener('change',()=>{ recalcTotals(); saveDraft(); });
+        });
+
+        refreshSerials();
+        recalcTotals();
+    }
+
+    function refreshSerials(){
+        document.querySelectorAll('#itemTableBody tr').forEach((tr,i)=>{
+            tr.querySelector('.sr-cell').textContent = (i+1);
+        });
+    }
+
+    function recalcTotals(){
+        const rows = document.querySelectorAll('#itemTableBody tr');
+        let totalQty = 0;
+        rows.forEach(r => totalQty += (parseFloat(r.querySelector('.col-qty').value) || 0));
+        $('totalItemCount').textContent = rows.length;
+        $('totalQty').textContent = totalQty.toLocaleString('en-IN');
+
+        const pri = $('priority').value;
+        const pill = $('urgentPill');
+        const badge = $('priorityBadge');
+        if (pri && pri !== 'Normal'){
+            pill.style.display = 'inline-flex';
+            badge.textContent = pri.toUpperCase();
+        } else { pill.style.display = 'none'; }
+    }
+
+    /* ---------- DRAFT ---------- */
+    function gatherFormData(){
+        const items = [];
+        document.querySelectorAll('#itemTableBody tr').forEach(r=>{
+            items.push({
+                itemName: r.querySelector('.col-name').value.trim(),
+                itemDesc: r.querySelector('.col-desc').value.trim(),
+                make:     r.querySelector('.col-make').value.trim(),
+                category: r.querySelector('.col-cat').value,
+                qty:      parseFloat(r.querySelector('.col-qty').value) || 0,
+                uom:      r.querySelector('.col-uom').value,
+                remarks:  r.querySelector('.col-rem').value.trim()
+            });
+        });
+        return {
+            reqNo:           $('reqNoField').value,
+            date:            $('reqDate').value,
+            requiredByDate:  $('requiredByDate').value,
+            priority:        $('priority').value,
+            personName:      $('reqPersonName').value.trim(),
+            empCode:         $('reqEmpCode').value.trim(),
+            designation:     $('reqDesignation').value.trim(),
+            department:      $('reqDepartment').value,
+            contact:         $('reqContact').value.trim(),
+            machine:         $('reqMachine').value.trim(),
+            purpose:         $('reqPurpose').value.trim(),
+            overallRemarks:  $('overallRemarks').value.trim(),
+            items:           items,
+            savedAt:         new Date().toISOString()
+        };
+    }
+
+    let draftTimer = null;
+    function saveDraft(){
+        clearTimeout(draftTimer);
+        draftTimer = setTimeout(()=>{
+            try {
+                const data = gatherFormData();
+                localStorage.setItem(DRAFT_KEY, JSON.stringify(data));
+                const t = new Date();
+                $('draftInfo').textContent =
+                    '💾 Draft auto-saved at ' + pad(t.getHours())+':'+pad(t.getMinutes())+':'+pad(t.getSeconds());
+            } catch(e){}
+        }, 400);
+    }
+
+    function loadDraft(){
+        try {
+            const raw = localStorage.getItem(DRAFT_KEY);
+            if (!raw) return false;
+            const d = JSON.parse(raw);
+            $('reqDate').value         = d.date || todayISO();
+            $('requiredByDate').value  = d.requiredByDate || todayISO();
+            $('priority').value        = d.priority || 'Normal';
+            $('reqPersonName').value   = d.personName || '';
+            $('reqEmpCode').value      = d.empCode || '';
+            $('reqDesignation').value  = d.designation || '';
+            $('reqDepartment').value   = d.department || '';
+            $('reqContact').value      = d.contact || '';
+            $('reqMachine').value      = d.machine || '';
+            $('reqPurpose').value      = d.purpose || '';
+            $('overallRemarks').value  = d.overallRemarks || '';
+
+            $('itemTableBody').innerHTML = '';
+            if (Array.isArray(d.items) && d.items.length){
+                d.items.forEach(it=> addItemRow(it));
+            } else { addItemRow(); }
+            $('draftInfo').textContent = '💾 Draft restored from previous session.';
+            return true;
+        } catch(e){ return false; }
+    }
+
+    /* ---------- VALIDATE & SUBMIT ---------- */
+    function validateForm(){
+        const required = [
+            ['reqDate','Date'],['requiredByDate','Required By Date'],
+            ['reqPersonName','Person Name'],['reqDepartment','Department'],
+            ['reqPurpose','Purpose / Reason']
+        ];
+        for (const [id,label] of required){
+            const el = $(id);
+            if (!el.value.toString().trim()){
+                showToast('&#9888; <b>'+label+'</b> is required.', 'warn', 4500);
+                el.focus();
+                el.style.borderColor = '#dc2626';
+                setTimeout(()=> el.style.borderColor='', 2500);
+                return false;
+            }
+        }
+        const d1 = $('reqDate').value, d2 = $('requiredByDate').value;
+        if (d1 && d2 && d2 < d1){
+            showToast('&#9888; Required By Date cannot be before Request Date.', 'warn', 5000);
+            $('requiredByDate').focus();
+            return false;
+        }
+        const contact = $('reqContact').value.trim();
+        if (contact && !/^[0-9+\-\s]{7,15}$/.test(contact)){
+            showToast('&#9888; Contact number looks invalid.', 'warn', 4000);
+            return false;
+        }
+        const rows = document.querySelectorAll('#itemTableBody tr');
+        if (rows.length === 0){ showToast('&#9888; Add at least one item.', 'warn'); return false; }
+        let hasValid = false, invalidRow = -1;
+        for (let i=0;i<rows.length;i++){
+            const r = rows[i];
+            const nm = r.querySelector('.col-name').value.trim();
+            const qy = parseFloat(r.querySelector('.col-qty').value) || 0;
+            const isBlank = !nm && !qy && !r.querySelector('.col-desc').value.trim();
+            if (!isBlank){
+                if (nm && qy > 0){ hasValid = true; }
+                else if (invalidRow === -1){ invalidRow = i+1; }
+            }
+        }
+        if (!hasValid){
+            showToast('&#9888; At least one item must have Item Name and Qty &gt; 0.', 'warn', 5500);
+            return false;
+        }
+        if (invalidRow !== -1){
+            showToast('&#9888; Row #'+invalidRow+' is partially filled.', 'warn', 5500);
+            return false;
+        }
+        return true;
+    }
+
+    function buildModalSummary(d){
+        const validItems = d.items.filter(it => it.itemName && it.qty > 0);
+        const lines = [
+            ['Requirement No.', d.reqNo],['Request Date', d.date],
+            ['Required By', d.requiredByDate],['Priority', d.priority],
+            ['Person', d.personName + (d.empCode ? ' ('+d.empCode+')' : '')],
+            ['Department', d.department + (d.designation ? ' / '+d.designation : '')],
+            ['Purpose', d.purpose],['Total Items', validItems.length],
+            ['Total Qty', validItems.reduce((s,it)=>s+it.qty,0).toLocaleString('en-IN')]
+        ];
+        return lines.map(([l,v])=>
+            '<div class="row"><span class="lbl">'+escapeHtml(l)+'</span><span class="val">'+escapeHtml(String(v||'-'))+'</span></div>'
+        ).join('');
+    }
+
+    function openConfirmModal(){
+        $('modalSummary').innerHTML = buildModalSummary(gatherFormData());
+        $('confirmModal').classList.add('active');
+    }
+    function closeConfirmModal(){ $('confirmModal').classList.remove('active'); }
+
+    function showSyncOverlay(msg){ $('syncMsg').textContent = msg || 'Syncing...'; $('syncOverlay').classList.add('active'); }
+    function hideSyncOverlay(){ $('syncOverlay').classList.remove('active'); }
+
+    /* ---------- PDF PRINT HELPER ----------
+       Drive file URL pattern:  https://drive.google.com/file/d/FILE_ID/view?usp=drivesdk
+       For direct print preview we open the Drive preview which has a Print button,
+       AND we attempt to auto-trigger print using window.print() on a hidden iframe
+       fallback. Browser may block popup - so we also offer a clickable toast link. */
+    function driveFileIdFromUrl(url){
+        if (!url) return '';
+        const m = String(url).match(/\/d\/([a-zA-Z0-9_-]+)/);
+        return m ? m[1] : '';
+    }
+    function openPdfForPrint(pdfUrl, reqNo){
+        if (!pdfUrl) return;
+        const fileId = driveFileIdFromUrl(pdfUrl);
+        // Drive 'preview' page allows inline view + has a built-in print button.
+        const previewUrl = fileId
+            ? 'https://drive.google.com/file/d/' + fileId + '/view'
+            : pdfUrl;
+        const win = window.open(previewUrl, '_blank', 'noopener');
+        if (!win) {
+            showToast('&#9888; Popup blocked. Click the PDF link in the toast to open <b>'+escapeHtml(reqNo||'')+'</b>.', 'warn', 9000);
+        }
+    }
+
+    /* ---------- CLOUD SYNC HELPER ---------- */
+    async function syncToCloud(payload){
+        if (!URL_IS_CONFIGURED) {
+            return { status:'ERROR', message:'Apps Script URL not configured in HTML file' };
+        }
+        const res = await fetch(APPS_SCRIPT_URL, {
+            method: 'POST', mode: 'cors', redirect: 'follow',
+            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+            body:   JSON.stringify(payload)
+        });
+        const text = await res.text();
+        try { return JSON.parse(text); }
+        catch(e){ return { status:'ERROR', message:'Invalid server response: '+text.slice(0,150) }; }
+    }
+
+    function queuePending(data){
+        let q = [];
+        try { q = JSON.parse(localStorage.getItem(PENDING_KEY) || '[]'); } catch(e){}
+        q.push(data);
+        localStorage.setItem(PENDING_KEY, JSON.stringify(q));
+    }
+    async function flushPendingQueue(){
+        let q = [];
+        try { q = JSON.parse(localStorage.getItem(PENDING_KEY) || '[]'); } catch(e){}
+        if (!q.length || !URL_IS_CONFIGURED) return;
+        showToast('🔄 Retrying '+q.length+' pending submission(s)...', 'success', 3000);
+        const remaining = [];
+        for (const item of q){
+            try { const r = await syncToCloud(item); if (r.status !== 'OK' && r.status !== 'DUPLICATE') remaining.push(item); }
+            catch(e){ remaining.push(item); }
+        }
+        localStorage.setItem(PENDING_KEY, JSON.stringify(remaining));
+        if (remaining.length === 0) showToast('&#9989; All pending synced!', 'success', 4000);
+    }
+
+    async function doSubmit(){
+        const data = gatherFormData();
+        data.items = data.items.filter(it => it.itemName && it.qty > 0);
+        data.action = 'save';
+
+        let log = [];
+        try { log = JSON.parse(localStorage.getItem(SUBMITTED_KEY) || '[]'); } catch(e){}
+        log.push(data);
+        try { localStorage.setItem(SUBMITTED_KEY, JSON.stringify(log)); } catch(e){}
+
+        closeConfirmModal();
+
+        if (!URL_IS_CONFIGURED){
+            queuePending(data); bumpCounter();
+            showToast('&#9888; URL not configured - saved to local queue.', 'warn', 7000);
+            localStorage.removeItem(DRAFT_KEY);
+            resetForm(true);
+            return;
+        }
+
+        showSyncOverlay('Syncing to Google Sheets...');
+        try {
+            const result = await syncToCloud(data);
+            hideSyncOverlay();
+            if (result.status === 'OK'){
+                bumpCounter();
+                localStorage.removeItem(DRAFT_KEY);
+                const pdfMsg = result.pdfUrl
+                    ? ' &middot; <a href="'+result.pdfUrl+'" target="_blank" style="color:#7dd3fc;text-decoration:underline;font-weight:800;">📄 Open PDF</a>'
+                    : '';
+                showToast('&#9989; <b>'+data.reqNo+'</b> saved! Row '+result.savedRow+' &middot; '+result.itemsCount+' item(s).'+pdfMsg, 'success', 9000);
+                if (result.pdfUrl) openPdfForPrint(result.pdfUrl, data.reqNo);
+                resetForm(true);
+                flushPendingQueue();
+            } else if (result.status === 'DUPLICATE'){
+                showToast('&#9888; Duplicate: '+result.message, 'warn', 7000);
+            } else {
+                queuePending(data);
+                showToast('&#10060; Sync failed: '+(result.message||'Unknown'), 'error', 8000);
+            }
+        } catch(err){
+            hideSyncOverlay();
+            queuePending(data);
+            showToast('&#10060; Network error: '+err.message, 'error', 8000);
+        }
+    }
+
+    function exportCsv(){
+        if (!validateForm()) return;
+        const d = gatherFormData();
+        const validItems = d.items.filter(it => it.itemName && it.qty > 0);
+        const headerRows = [
+            ['SARV INDIA - Item Requirement'],
+            ['Requirement No.', d.reqNo],['Date', d.date],['Required By', d.requiredByDate],
+            ['Priority', d.priority],['Person Name', d.personName],['Employee Code', d.empCode],
+            ['Designation', d.designation],['Department', d.department],['Contact', d.contact],
+            ['Machine/Line', d.machine],['Purpose', d.purpose],['Overall Remarks', d.overallRemarks],
+            [],['Sr.','Item Name','Description','Make/Brand','Category','Qty','UOM','Remarks']
+        ];
+        const itemRows = validItems.map((it,i)=>([i+1, it.itemName, it.itemDesc, it.make, it.category, it.qty, it.uom, it.remarks]));
+        const all = headerRows.concat(itemRows);
+        const csv = all.map(row =>
+            row.map(cell => {
+                const s = String(cell == null ? '' : cell);
+                if (/[",\n]/.test(s)) return '"' + s.replace(/"/g,'""') + '"';
+                return s;
+            }).join(',')
+        ).join('\r\n');
+        const blob = new Blob([ '\uFEFF' + csv ], { type: 'text/csv;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = d.reqNo + '_' + (d.personName||'requester').replace(/[^\w\-]+/g,'_') + '.csv';
+        document.body.appendChild(a); a.click(); document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        showToast('&#128190; CSV exported.', 'success', 3000);
+    }
+
+    function resetForm(keepCounter){
+        $('reqDate').value        = todayISO();
+        $('requiredByDate').value = todayISO();
+        $('priority').value       = 'Normal';
+        ['reqPersonName','reqEmpCode','reqDesignation','reqContact','reqMachine','reqPurpose','overallRemarks']
+            .forEach(id=> $(id).value = '');
+        $('reqDepartment').value = '';
+        $('itemTableBody').innerHTML = '';
+        addItemRow();
+        $('reqNoField').value = generateReqNo();
+        $('draftInfo').textContent = keepCounter ? '✅ Last entry saved. Ready for next requirement.' : 'Form cleared.';
+        recalcTotals();
+    }
+
+    /* ================================================================
+       =============== MANAGE & UPDATE TAB FUNCTIONS ==================
+       ================================================================ */
+
+    async function loadRequirementsList(){
+        if (!URL_IS_CONFIGURED){
+            $('reqListBody').innerHTML = '<tr><td colspan="10" class="empty-state">⚠️ Apps Script URL HTML me configure nahi hai. Setup banner dekho.</td></tr>';
+            return;
+        }
+        showSyncOverlay('Loading requirements...');
+        try {
+            const payload = {
+                action:    'list',
+                search:    $('filterSearch').value.trim(),
+                status:    $('filterStatus').value,
+                department:$('filterDept').value,
+                priority:  $('filterPriority').value,
+                dateFrom:  $('filterFrom').value
+            };
+            const result = await syncToCloud(payload);
+            hideSyncOverlay();
+            if (result.status !== 'OK'){
+                showToast('&#10060; '+(result.message||'Load failed'), 'error', 6000);
+                $('reqListBody').innerHTML = '';
+                return;
+            }
+            renderRequirementsList(result.items || []);
+        } catch(err){
+            hideSyncOverlay();
+            showToast('&#10060; '+err.message, 'error', 6000);
+        }
+    }
+
+    function statusBadgeClass(status){
+        const s = String(status||'').toLowerCase();
+        if (s.includes('pending'))    return 'badge-pending';
+        if (s.includes('progress'))   return 'badge-progress';
+        if (s.includes('partial'))    return 'badge-partial';
+        if (s.includes('fulfilled') || s.includes('fully')) return 'badge-fulfilled';
+        if (s.includes('closed'))     return 'badge-closed';
+        if (s.includes('cancelled'))  return 'badge-cancelled';
+        return 'badge-pending';
+    }
+    function priorityBadgeClass(p){
+        const x = String(p||'').toLowerCase();
+        if (x === 'urgent')   return 'badge-urgent';
+        if (x === 'critical') return 'badge-critical';
+        return 'badge-normal';
+    }
+
+    function renderRequirementsList(items){
+        const tbody = $('reqListBody');
+        $('listCount').textContent = items.length;
+
+        let cP=0,cI=0,cF=0;
+        items.forEach(it=>{
+            const s = String(it.status||'').toLowerCase();
+            if (s.includes('pending')) cP++;
+            else if (s.includes('progress')) cI++;
+            else if (s.includes('fulfilled')) cF++;
+        });
+        $('cntPending').textContent = cP;
+        $('cntProgress').textContent = cI;
+        $('cntFulfilled').textContent = cF;
+        $('pillPending').style.display    = cP ? 'inline-flex' : 'none';
+        $('pillProgress').style.display   = cI ? 'inline-flex' : 'none';
+        $('pillFulfilled').style.display  = cF ? 'inline-flex' : 'none';
+
+        if (!items.length){
+            tbody.innerHTML = '<tr><td colspan="10" class="empty-state"><div class="ico">🔍</div>No requirements match filters</td></tr>';
+            return;
+        }
+        tbody.innerHTML = items.map(it => `
+            <tr class="req-row" data-reqno="${escapeHtml(it.reqNo)}">
+                <td><b style="color:#0284c7;">${escapeHtml(it.reqNo)}</b></td>
+                <td>${escapeHtml(it.date)}</td>
+                <td>${escapeHtml(it.personName)}<br><small style="color:#64748b;">${escapeHtml(it.empCode||'')}</small></td>
+                <td>${escapeHtml(it.department)}</td>
+                <td><small>${escapeHtml((it.purpose||'').slice(0,40))}${(it.purpose||'').length>40?'...':''}</small></td>
+                <td style="text-align:center;">${it.totalItems}</td>
+                <td style="text-align:center;">${(it.totalQty||0).toLocaleString('en-IN')}</td>
+                <td style="text-align:center;"><b>${(it.totalIssuedQty||0).toLocaleString('en-IN')}</b></td>
+                <td><span class="badge ${priorityBadgeClass(it.priority)}">${escapeHtml(it.priority||'Normal')}</span></td>
+                <td><span class="badge ${statusBadgeClass(it.status)}">${escapeHtml(it.status||'Pending')}</span></td>
+            </tr>
+        `).join('');
+
+        tbody.querySelectorAll('.req-row').forEach(tr => {
+            tr.addEventListener('click', () => {
+                tbody.querySelectorAll('.req-row').forEach(r => r.classList.remove('selected'));
+                tr.classList.add('selected');
+                loadRequirementDetail(tr.dataset.reqno);
+            });
+        });
+    }
+
+    async function loadRequirementDetail(reqNo){
+        if (!reqNo) return;
+        showSyncOverlay('Loading details...');
+        try {
+            const result = await syncToCloud({ action: 'detail', reqNo: reqNo });
+            hideSyncOverlay();
+            if (result.status !== 'OK'){
+                showToast('&#10060; '+(result.message||'Load failed'), 'error', 6000);
+                return;
+            }
+            CURRENT_DETAIL = result;
+            renderDetail(result);
+        } catch(err){
+            hideSyncOverlay();
+            showToast('&#10060; '+err.message, 'error', 6000);
+        }
+    }
+
+    function renderDetail(d){
+        $('detailPanel').style.display = 'block';
+        $('detailEmpty').style.display = 'none';
+        const m = d.master;
+        $('detailTitle').textContent = 'Requirement: ' + m.reqNo;
+        $('detailMasterStatus').innerHTML =
+            '<span class="badge '+statusBadgeClass(m.status)+'" style="padding:5px 12px; font-size:11px;">'+escapeHtml(m.status||'Pending')+'</span>';
+
+        $('detailGrid').innerHTML = `
+            <div class="field"><span class="lbl">Person</span><span class="val">${escapeHtml(m.personName)} ${m.empCode? '<small style=color:#64748b>('+escapeHtml(m.empCode)+')</small>':''}</span></div>
+            <div class="field"><span class="lbl">Department</span><span class="val">${escapeHtml(m.department||'-')}</span></div>
+            <div class="field"><span class="lbl">Designation</span><span class="val">${escapeHtml(m.designation||'-')}</span></div>
+            <div class="field"><span class="lbl">Contact</span><span class="val">${escapeHtml(m.contact||'-')}</span></div>
+            <div class="field"><span class="lbl">Request Date</span><span class="val">${escapeHtml(m.date||'-')}</span></div>
+            <div class="field"><span class="lbl">Required By</span><span class="val">${escapeHtml(m.requiredByDate||'-')}</span></div>
+            <div class="field"><span class="lbl">Priority</span><span class="val"><span class="badge ${priorityBadgeClass(m.priority)}">${escapeHtml(m.priority||'-')}</span></span></div>
+            <div class="field"><span class="lbl">Machine / Line</span><span class="val">${escapeHtml(m.machine||'-')}</span></div>
+            <div class="field" style="grid-column: span 2;"><span class="lbl">Purpose</span><span class="val">${escapeHtml(m.purpose||'-')}</span></div>
+            <div class="field"><span class="lbl">Total Qty / Issued</span><span class="val">${(m.totalQty||0).toLocaleString('en-IN')} / <b style="color:#047857;">${(m.totalIssuedQty||0).toLocaleString('en-IN')}</b></span></div>
+            <div class="field"><span class="lbl">Last Updated</span><span class="val"><small>${escapeHtml(m.lastUpdated||'-')} ${m.updatedBy? 'by '+escapeHtml(m.updatedBy):''}</small></span></div>
+            ${m.overallRemarks ? '<div class="field" style="grid-column: 1 / -1;"><span class="lbl">Overall Remarks</span><span class="val">'+escapeHtml(m.overallRemarks)+'</span></div>':''}
+            ${m.closeRemarks ? '<div class="field" style="grid-column: 1 / -1;"><span class="lbl">Close Remarks</span><span class="val" style="color:#b45309;">'+escapeHtml(m.closeRemarks)+'</span></div>':''}
+        `;
+
+        const tbody = $('detailItemsBody');
+        const items = d.items || [];
+        const masterClosed = (String(m.status) === 'Closed' || String(m.status) === 'Cancelled');
+
+        tbody.innerHTML = items.map(it => `
+            <tr data-srno="${it.srNo}" data-qtyreq="${it.qtyRequested}">
+                <td class="sr-cell">${it.srNo}</td>
+                <td><b>${escapeHtml(it.itemName||'')}</b><br><small style="color:#64748b;">${escapeHtml(it.make||'')}</small></td>
+                <td><small>${escapeHtml(it.itemDesc||'')}</small></td>
+                <td style="text-align:center;"><b>${(it.qtyRequested||0).toLocaleString('en-IN')}</b></td>
+                <td style="text-align:center;">
+                    <input type="number" class="table-input col-issued-input col-issued" min="0" max="${it.qtyRequested}" step="any" value="${it.qtyIssued||0}" ${masterClosed?'disabled':''}>
+                </td>
+                <td>${escapeHtml(it.uom||'')}</td>
+                <td>
+                    <select class="table-select col-itemstatus" ${masterClosed?'disabled':''}>
+                        <option value="Pending"          ${it.itemStatus==='Pending'?'selected':''}>⏳ Pending</option>
+                        <option value="Partially Issued" ${it.itemStatus==='Partially Issued'?'selected':''}>🟡 Partial</option>
+                        <option value="Fully Issued"     ${it.itemStatus==='Fully Issued'?'selected':''}>✅ Fully Issued</option>
+                        <option value="Cancelled"        ${it.itemStatus==='Cancelled'?'selected':''}>❌ Cancelled</option>
+                    </select>
+                </td>
+                <td><input type="text" class="table-input col-issrem" placeholder="optional" value="${escapeHtml(it.issueRemarks||'')}" ${masterClosed?'disabled':''}></td>
+                <td style="text-align:center;">
+                    ${it.issueDate ? '<small style="color:#64748b;" title="Issued: '+escapeHtml(it.issueDate)+' by '+escapeHtml(it.issuedBy||'')+'">📅</small>' : ''}
+                </td>
+            </tr>
+        `).join('');
+
+        tbody.querySelectorAll('tr').forEach(tr => {
+            const qtyReq = Number(tr.dataset.qtyreq) || 0;
+            const statusSel = tr.querySelector('.col-itemstatus');
+            const issuedInp = tr.querySelector('.col-issued');
+            statusSel.addEventListener('change', () => {
+                const st = statusSel.value;
+                if (st === 'Fully Issued') issuedInp.value = qtyReq;
+                else if (st === 'Pending' || st === 'Cancelled') issuedInp.value = 0;
+                else if (st === 'Partially Issued') {
+                    const cur = Number(issuedInp.value) || 0;
+                    if (cur <= 0 || cur >= qtyReq) issuedInp.value = Math.max(1, Math.floor(qtyReq/2));
+                }
+            });
+            issuedInp.addEventListener('input', () => {
+                const v = Number(issuedInp.value) || 0;
+                if (v <= 0)            statusSel.value = 'Pending';
+                else if (v >= qtyReq)  { statusSel.value = 'Fully Issued'; issuedInp.value = qtyReq; }
+                else                   statusSel.value = 'Partially Issued';
+            });
+        });
+
+        $('updatedByField').value = localStorage.getItem(UPDATED_BY_KEY) || '';
+
+        $('closeMasterBtn').disabled  = (String(m.status) === 'Closed');
+        $('cancelMasterBtn').disabled = (String(m.status) === 'Cancelled');
+        $('saveAllItemsBtn').disabled = masterClosed;
+
+        const hasPdf = !!(m.pdfLink && /^https?:\/\//i.test(m.pdfLink));
+        $('openPdfBtn').disabled  = !hasPdf;
+        $('openPdfBtn').title     = hasPdf ? 'Open PDF for printing' : 'No PDF available - click Regen PDF';
+        $('regenPdfBtn').disabled = false;
+    }
+
+    async function openCurrentPdf(){
+        if (!CURRENT_DETAIL || !CURRENT_DETAIL.master) return;
+        const url = CURRENT_DETAIL.master.pdfLink;
+        if (!url) { showToast('&#9888; No PDF yet. Click Regen PDF first.', 'warn', 4000); return; }
+        openPdfForPrint(url, CURRENT_DETAIL.master.reqNo);
+    }
+
+    async function regenerateCurrentPdf(){
+        if (!CURRENT_DETAIL || !CURRENT_DETAIL.master) return;
+        showSyncOverlay('Regenerating PDF...');
+        try {
+            const result = await syncToCloud({
+                action: 'regeneratePdf',
+                reqNo:  CURRENT_DETAIL.master.reqNo
+            });
+            hideSyncOverlay();
+            if (result.status === 'OK' && result.pdfUrl){
+                showToast('&#9989; PDF regenerated. <a href="'+result.pdfUrl+'" target="_blank" style="color:#7dd3fc;text-decoration:underline;font-weight:800;">📄 Open</a>', 'success', 8000);
+                openPdfForPrint(result.pdfUrl, CURRENT_DETAIL.master.reqNo);
+                await loadRequirementDetail(CURRENT_DETAIL.master.reqNo);
+            } else {
+                showToast('&#10060; '+(result.message||'PDF regen failed'), 'error', 6000);
+            }
+        } catch(err){
+            hideSyncOverlay();
+            showToast('&#10060; '+err.message, 'error', 6000);
+        }
+    }
+
+    async function saveAllItemChanges(){
+        if (!CURRENT_DETAIL) return;
+        const updatedBy = $('updatedByField').value.trim();
+        if (!updatedBy){
+            showToast('&#9888; Please enter your name (Issued By) before saving.', 'warn', 4500);
+            $('updatedByField').focus();
+            return;
+        }
+        localStorage.setItem(UPDATED_BY_KEY, updatedBy);
+
+        const updates = [];
+        document.querySelectorAll('#detailItemsBody tr').forEach(tr => {
+            const srNo      = Number(tr.dataset.srno);
+            const newStatus = tr.querySelector('.col-itemstatus').value;
+            const newIssued = Number(tr.querySelector('.col-issued').value) || 0;
+            const newRem    = tr.querySelector('.col-issrem').value.trim();
+
+            const original = CURRENT_DETAIL.items.find(x => x.srNo === srNo);
+            if (!original) return;
+            const changed =
+                (original.itemStatus   !== newStatus) ||
+                (Number(original.qtyIssued) !== newIssued) ||
+                ((original.issueRemarks||'') !== newRem);
+            if (changed){
+                updates.push({ srNo, newStatus, qtyIssued: newIssued, issueRemarks: newRem });
+            }
+        });
+
+        if (updates.length === 0){
+            showToast('No changes to save.', 'warn', 3000);
+            return;
+        }
+
+        showSyncOverlay('Updating '+updates.length+' item(s)...');
+        try {
+            const result = await syncToCloud({
+                action: 'bulkUpdateItems',
+                reqNo:  CURRENT_DETAIL.master.reqNo,
+                updatedBy: updatedBy,
+                items: updates
+            });
+            hideSyncOverlay();
+
+            if (result.status === 'OK' || result.status === 'PARTIAL'){
+                showToast(
+                    (result.status === 'OK' ? '&#9989;' : '&#9888;') + ' ' + result.message +
+                    ' &middot; Master status: <b>'+result.masterStatus+'</b>',
+                    result.status === 'OK' ? 'success' : 'warn', 5500
+                );
+                await loadRequirementDetail(CURRENT_DETAIL.master.reqNo);
+                await loadRequirementsList();
+            } else {
+                showToast('&#10060; '+(result.message||'Update failed'), 'error', 6000);
+            }
+        } catch(err){
+            hideSyncOverlay();
+            showToast('&#10060; '+err.message, 'error', 6000);
+        }
+    }
+
+    function openMasterActionModal(type){
+        if (!CURRENT_DETAIL) return;
+        MASTER_ACTION_TYPE = type;
+        if (type === 'close'){
+            $('masterActionTitle').innerHTML = '&#128274; Mark Requirement as Closed';
+            $('masterActionSub').textContent = 'Closes Req ' + CURRENT_DETAIL.master.reqNo + '. No further item updates will be possible.';
+        } else {
+            $('masterActionTitle').innerHTML = '&#10060; Cancel Requirement';
+            $('masterActionSub').textContent = 'Cancels Req ' + CURRENT_DETAIL.master.reqNo + '. All items will be marked cancelled.';
+        }
+        $('masterActionRemarks').value = '';
+        $('masterActionBy').value = localStorage.getItem(UPDATED_BY_KEY) || '';
+        $('masterActionModal').classList.add('active');
+    }
+    function closeMasterActionModal(){ $('masterActionModal').classList.remove('active'); }
+
+    async function confirmMasterAction(){
+        if (!CURRENT_DETAIL || !MASTER_ACTION_TYPE) return;
+        const remarks   = $('masterActionRemarks').value.trim();
+        const updatedBy = $('masterActionBy').value.trim();
+        if (!remarks){
+            showToast('&#9888; Remarks required.', 'warn', 3500);
+            $('masterActionRemarks').focus();
+            return;
+        }
+        if (!updatedBy){
+            showToast('&#9888; Your name required.', 'warn', 3500);
+            $('masterActionBy').focus();
+            return;
+        }
+        localStorage.setItem(UPDATED_BY_KEY, updatedBy);
+
+        const newStatus = (MASTER_ACTION_TYPE === 'close') ? 'Closed' : 'Cancelled';
+        closeMasterActionModal();
+        showSyncOverlay(newStatus === 'Closed' ? 'Closing requirement...' : 'Cancelling requirement...');
+        try {
+            const result = await syncToCloud({
+                action: 'updateMasterStatus',
+                reqNo:  CURRENT_DETAIL.master.reqNo,
+                newStatus,
+                closeRemarks: remarks,
+                updatedBy
+            });
+            hideSyncOverlay();
+            if (result.status === 'OK'){
+                showToast('&#9989; Marked '+newStatus, 'success', 4500);
+                await loadRequirementDetail(CURRENT_DETAIL.master.reqNo);
+                await loadRequirementsList();
+            } else {
+                showToast('&#10060; '+(result.message||'Action failed'), 'error', 6000);
+            }
+        } catch(err){
+            hideSyncOverlay();
+            showToast('&#10060; '+err.message, 'error', 6000);
+        }
+    }
+
+    /* ---------- INIT ---------- */
+    $('reqDate').value        = todayISO();
+    $('requiredByDate').value = todayISO();
+    const restored = loadDraft();
+    if (!restored) addItemRow();
+    $('reqNoField').value = generateReqNo();
+
+    /* ---------- EVENT WIRING ---------- */
+    $('addItemBtn').addEventListener('click', ()=> addItemRow());
+
+    ['reqDate','requiredByDate','priority','reqPersonName','reqEmpCode','reqDesignation',
+     'reqDepartment','reqContact','reqMachine','reqPurpose','overallRemarks']
+    .forEach(id=>{
+        $(id).addEventListener('input', saveDraft);
+        $(id).addEventListener('change', ()=>{ recalcTotals(); saveDraft(); });
+    });
+
+    $('clearBtn').addEventListener('click', ()=>{
+        if (confirm('Clear the entire form?')){
+            localStorage.removeItem(DRAFT_KEY);
+            resetForm(false);
+            showToast('Form cleared.', 'success', 2500);
+        }
+    });
+    $('exportCsvBtn').addEventListener('click', exportCsv);
+    $('submitBtn').addEventListener('click', ()=>{ if (validateForm()) openConfirmModal(); });
+    $('modalCancelBtn').addEventListener('click', closeConfirmModal);
+    $('modalConfirmBtn').addEventListener('click', doSubmit);
+    $('confirmModal').addEventListener('click', (e)=>{ if (e.target.id === 'confirmModal') closeConfirmModal(); });
+
+    $('refreshListBtn').addEventListener('click', loadRequirementsList);
+    ['filterSearch','filterStatus','filterDept','filterPriority','filterFrom'].forEach(id=>{
+        $(id).addEventListener('change', loadRequirementsList);
+    });
+    let searchDeb;
+    $('filterSearch').addEventListener('input', ()=>{
+        clearTimeout(searchDeb);
+        searchDeb = setTimeout(loadRequirementsList, 400);
+    });
+
+    $('saveAllItemsBtn').addEventListener('click', saveAllItemChanges);
+    $('closeMasterBtn').addEventListener('click', ()=> openMasterActionModal('close'));
+    $('cancelMasterBtn').addEventListener('click', ()=> openMasterActionModal('cancel'));
+    $('openPdfBtn').addEventListener('click', openCurrentPdf);
+    $('regenPdfBtn').addEventListener('click', regenerateCurrentPdf);
+    $('masterActionCancelBtn').addEventListener('click', closeMasterActionModal);
+    $('masterActionConfirmBtn').addEventListener('click', confirmMasterAction);
+    $('masterActionModal').addEventListener('click', (e)=>{ if (e.target.id === 'masterActionModal') closeMasterActionModal(); });
+
+    document.addEventListener('keydown', (e)=>{
+        if (e.key === 'Escape'){ closeConfirmModal(); closeMasterActionModal(); }
+        if ((e.ctrlKey || e.metaKey) && e.key === 'Enter'){
+            e.preventDefault();
+            if (document.querySelector('.nav-link.active').dataset.tab === 'entry'){
+                if (validateForm()) openConfirmModal();
+            }
+        }
+    });
+
+    recalcTotals();
+
+    if (URL_IS_CONFIGURED){
+        verifyBackend();
+        setTimeout(flushPendingQueue, 2000);
+    } else {
+        $('syncStatus').textContent = 'NOT CONFIGURED';
+        $('syncStatus').className = 'sync-status offline';
+        $('setupBanner').style.display = 'block';
+    }
+
+    window.SARV_DEBUG = {
+        verifyBackend, flushPendingQueue, loadRequirementsList, loadRequirementDetail,
+        getPending: ()=> JSON.parse(localStorage.getItem(PENDING_KEY) || '[]'),
+        clearPending: ()=> localStorage.removeItem(PENDING_KEY),
+        isConfigured: URL_IS_CONFIGURED, currentUrl: APPS_SCRIPT_URL
+    };
+    </script>
+</body>
+</html>
