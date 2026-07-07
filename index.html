@@ -160,6 +160,21 @@
             border: 1px solid #6ee7b7;
         }
 
+        /* Overlay that blocks the entry form until sheet + serial are verified */
+        .form-lock-overlay {
+            position: absolute;
+            inset: 0;
+            border-radius: 10px;
+            background: rgba(248, 250, 252, 0.95);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 50;
+            text-align: center;
+            padding: 30px;
+        }
+
         .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 12px; }
         .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 12px; }
         .grid-5 { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; margin-bottom: 12px; }
@@ -349,9 +364,35 @@
         .badge-progress    { background:#fef3c7; color:#b45309; }
         .badge-closed      { background:#cbd5e1; color:#1e293b; }
         .badge-cancelled   { background:#fee2e2; color:#b91c1c; }
+        .badge-po          { background:#dbeafe; color:#1d4ed8; }
+        .badge-received    { background:#ccfbf1; color:#0f766e; }
         .badge-normal      { background:#d1fae5; color:#047857; }
         .badge-urgent      { background:#fef3c7; color:#b45309; }
         .badge-critical    { background:#fee2e2; color:#b91c1c; }
+
+        /* Receiving table */
+        .receiving-table th, .receiving-table td { white-space: nowrap; font-size: 12px; }
+        .receiving-table th { background: #0d5c53; color: #fff; padding: 8px 6px; font-size: 10px; }
+        .receiving-table tr:hover { background: #f0fdf4; }
+        #rcvBuildTable input { width: 100%; padding: 4px 6px; border: 1px solid #cbd5e1; border-radius: 4px; font-size: 12px; height: 28px; }
+        #rcvBuildTable input.rcv-qty { background: #d1fae5; color: #047857; font-weight: 700; text-align:center; }
+
+        /* Summary table */
+        .summary-table { font-size: 11.5px; }
+        .summary-table th { background: #0d5c53; color: #fff; padding: 8px 6px; font-size: 10px; white-space: nowrap; }
+        .summary-table td { padding: 5px 6px; vertical-align: middle; white-space: nowrap; }
+        .summary-table td.num { text-align: center; font-weight: 700; }
+        .summary-table td.num.zero { color: #94a3b8; font-weight: 500; }
+        .summary-table tr:hover { background: #f0f9ff; }
+
+        /* PO Pending selection table */
+        .po-pending-table th, .po-pending-table td { white-space: nowrap; font-size: 12px; }
+        .po-pending-table tr.po-row { cursor: pointer; }
+        .po-pending-table tr.po-row:hover { background: #ecfeff; }
+        .po-pending-table tr.po-row.selected { background: #dbeafe; }
+        .po-pending-table td.po-itemcell { white-space: normal; min-width: 140px; }
+        #poBuildTable input { width: 100%; padding: 4px 6px; border: 1px solid #cbd5e1; border-radius: 4px; font-size: 12px; height: 28px; }
+        #poBuildTable .po-total { text-align:right; font-weight:700; color:#0f172a; }
 
         /* Toast */
         #toastContainer {
@@ -559,6 +600,10 @@
             width: 60px !important;
             text-align: center;
         }
+        /* #8 remove up/down spinner buttons on PO unit price */
+        .po-unitprice::-webkit-outer-spin-button,
+        .po-unitprice::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+        .po-unitprice { -moz-appearance: textfield; appearance: textfield; }
     </style>
 </head>
 <body>
@@ -568,6 +613,9 @@
         <div class="nav-tabs">
             <div class="nav-link active" data-tab="entry">📝 New Entry</div>
             <div class="nav-link" data-tab="manage">📋 Manage &amp; Update</div>
+            <div class="nav-link" data-tab="po">🛒 PO Generation</div>
+            <div class="nav-link" data-tab="receive">📥 Receiving Items</div>
+            <div class="nav-link" data-tab="summary">📊 Summary</div>
         </div>
         <div class="header-right">
             <span class="sync-status checking" id="syncStatus">Checking...</span>
@@ -592,6 +640,10 @@
             </div>
 
             <div class="card">
+                <div id="editBanner" style="display:none;align-items:center;justify-content:space-between;gap:10px;background:#fef3c7;border:1px solid #f59e0b;border-radius:8px;padding:8px 14px;margin-bottom:10px;">
+                    <span style="font-weight:700;color:#b45309;font-size:13px;" id="editBannerText">Editing PR</span>
+                    <button class="btn btn-neutral btn-sm" id="cancelEditBtn" type="button">✖ Cancel Edit</button>
+                </div>
                 <div class="autosave-tag">&#128274; Draft Auto-Saved</div>
                 <h2 class="panel-title">PERSONNEL ITEM REQUIREMENT FORM</h2>
                 <div class="panel-subtitle">Capture requested items &middot; Auto-sync to Google Sheets</div>
@@ -620,6 +672,17 @@
                             <option value="Urgent">&#128993; Urgent</option>
                             <option value="Critical">&#128308; Critical</option>
                         </select>
+                    </div>
+                </div>
+
+                <div class="grid-4" style="margin-top:8px;">
+                    <div class="form-group">
+                        <label>Purchaser Name <span class="req">*</span></label>
+                        <input type="text" class="form-control" id="reqGeneratedBy" placeholder="Purchaser name">
+                    </div>
+                    <div class="form-group">
+                        <label>Last Date Used</label>
+                        <input type="date" class="form-control" id="reqLastDateUsed">
                     </div>
                 </div>
 
@@ -653,11 +716,6 @@
                             <option>Quality Control</option>
                             <option>Maintenance</option>
                             <option>Store</option>
-                            <option>Raschal</option>
-                            <option>Printing</option>
-                            <option>Electronics</option>
-                            <option>Maintenance</option>
-                            <option>Store1</option>                                            
                             <option>Dispatch</option>
                             <option>Admin / HR</option>
                             <option>Accounts</option>
@@ -697,13 +755,15 @@
                         <thead>
                             <tr>
                                 <th style="width: 4%; text-align: center;">Sr.</th>
-                                <th style="width: 16%;">Item Name <span style="color:#dc2626;">*</span></th>
-                                <th style="width: 22%;">Item Description / Spec</th>
-                                <th style="width: 11%;">MAKE / Brand</th>
-                                <th style="width: 12%;">Category</th>
-                                <th style="width: 8%;">Qty <span style="color:#dc2626;">*</span></th>
-                                <th style="width: 8%;">UOM</th>
-                                <th style="width: 15%;">Item Remarks</th>
+                                <th style="width: 14%;">Item Name <span style="color:#dc2626;">*</span></th>
+                                <th style="width: 18%;">Item Description / Spec</th>
+                                <th style="width: 9%;">MAKE / Brand</th>
+                                <th style="width: 10%;">Category</th>
+                                <th style="width: 11%;">Machine Name &amp; No.</th>
+                                <th style="width: 7%;">Qty <span style="color:#dc2626;">*</span></th>
+                                <th style="width: 7%;">UOM</th>
+                                <th style="width: 8%;">Gross Wt. (kg)</th>
+                                <th style="width: 12%;">Item Remarks</th>
                                 <th style="width: 4%;"></th>
                             </tr>
                         </thead>
@@ -729,6 +789,12 @@
             </div>
         </div>
 
+        <!-- Shared datalists for item field autocomplete (populated dynamically from Item_Library sheet) -->
+        <datalist id="dl-item-names"></datalist>
+        <datalist id="dl-item-descs"></datalist>
+        <datalist id="dl-item-makes"></datalist>
+        <datalist id="dl-item-machines"></datalist>
+
         <!-- ================== TAB 2: MANAGE & UPDATE ================== -->
         <div class="tab-content" id="tab-manage">
             <div class="card">
@@ -745,7 +811,12 @@
                         <select class="form-control" id="filterStatus">
                             <option value="">All</option>
                             <option>Pending</option>
+                            <option>PO Generated</option>
+                            <option>GM/CEO Approved</option>
+                            <option>MD Approved</option>
+                            <option>Vendor Verified</option>
                             <option>In Progress</option>
+                            <option>Received</option>
                             <option>Fulfilled</option>
                             <option>Closed</option>
                             <option>Cancelled</option>
@@ -782,6 +853,7 @@
                     <span class="totals-pill"><span class="lbl">Showing</span><span class="val" id="listCount">0</span></span>
                     <span class="totals-pill" id="pillPending" style="display:none;background:#e0e7ff;border-color:#a5b4fc;"><span class="lbl">Pending</span><span class="val" id="cntPending">0</span></span>
                     <span class="totals-pill" id="pillProgress" style="display:none;background:#fef3c7;border-color:#fcd34d;"><span class="lbl">In Progress</span><span class="val" id="cntProgress">0</span></span>
+                    <span class="totals-pill" id="pillReceived" style="display:none;background:#ccfbf1;border-color:#5eead4;color:#0f766e;"><span class="lbl">Received</span><span class="val" id="cntReceived">0</span></span>
                     <span class="totals-pill success" id="pillFulfilled" style="display:none;"><span class="lbl">Fulfilled</span><span class="val" id="cntFulfilled">0</span></span>
                 </div>
 
@@ -796,7 +868,7 @@
                                 <th>Purpose</th>
                                 <th style="text-align:center;">Items</th>
                                 <th style="text-align:center;">Qty</th>
-                                <th style="text-align:center;">Issued</th>
+                                <th style="text-align:center;background:#dbeafe;color:#1d4ed8;">In PO</th>
                                 <th>Priority</th>
                                 <th>Status</th>
                             </tr>
@@ -811,6 +883,7 @@
                         <h3 class="section-title" id="detailTitle">Requirement Details</h3>
                         <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
                             <span id="detailMasterStatus"></span>
+                            <button class="btn btn-primary btn-sm" id="editReqBtn" style="display:none;background:linear-gradient(180deg,#f59e0b 0%,#b45309 100%);" title="Edit this PR (allowed for 1 hour after creation)">&#9999;&#65039; Edit (1h)</button>
                             <button class="btn btn-primary btn-sm" id="openPdfBtn" title="Open PDF (print)">&#128196; Print PDF</button>
                             <button class="btn btn-neutral btn-sm" id="regenPdfBtn" title="Regenerate PDF with latest data">&#128260; Regen PDF</button>
                             <button class="btn btn-warn btn-sm" id="closeMasterBtn">&#128274; Mark Closed</button>
@@ -833,13 +906,16 @@
                             <thead>
                                 <tr>
                                     <th style="width: 4%; text-align:center;">Sr.</th>
-                                    <th style="width: 18%;">Item Name</th>
-                                    <th style="width: 20%;">Description</th>
-                                    <th style="width: 8%; text-align:center;">Req Qty</th>
-                                    <th style="width: 8%; text-align:center;">Issued</th>
-                                    <th style="width: 6%;">UOM</th>
-                                    <th style="width: 14%;">Status</th>
-                                    <th style="width: 18%;">Issue Remarks</th>
+                                    <th style="width: 14%;">Item Name</th>
+                                    <th style="width: 14%;">Description</th>
+                                    <th style="width: 6%; text-align:center;">Req</th>
+                                    <th style="width: 7%; text-align:center;">Issued</th>
+                                    <th style="width: 7%; text-align:center;background:#fee2e2;color:#b91c1c;">Cancelled</th>
+                                    <th style="width: 7%; text-align:center;background:#dbeafe;color:#1d4ed8;">In PO</th>
+                                    <th style="width: 7%; text-align:center;">Avail</th>
+                                    <th style="width: 5%;">UOM</th>
+                                    <th style="width: 13%;">Status</th>
+                                    <th style="width: 12%;">Issue Remarks</th>
                                     <th style="width: 4%;"></th>
                                 </tr>
                             </thead>
@@ -852,6 +928,671 @@
                     <div class="ico">📋</div>
                     <div>Select a row above to view items &amp; update status</div>
                 </div>
+            </div>
+        </div>
+
+        <!-- ================== TAB 3: PO GENERATION ================== -->
+        <div class="tab-content" id="tab-po">
+            <div class="card">
+                <h2 class="panel-title">PURCHASE ORDER (PO) GENERATION</h2>
+                <div class="panel-subtitle">Combine pending items from multiple requirements &middot; auto-generate professional PO PDF</div>
+
+                <!-- PO sub-nav -->
+                <div style="display:flex; gap:6px; margin-bottom:12px; border-bottom:1px solid #e2e8f0; padding-bottom:8px;">
+                    <button class="btn btn-primary btn-sm" id="poSubPendingBtn">📦 Pending Items (Build PO)</button>
+                    <button class="btn btn-neutral btn-sm" id="poSubListBtn">📜 Generated POs</button>
+                </div>
+
+                <!-- ==== Sub-panel A: Pending items selection ==== -->
+                <div id="poPendingPanel">
+                    <div class="filter-bar">
+                        <div class="form-group">
+                            <label>Search (Req / Item / Vendor)</label>
+                            <input type="text" class="form-control" id="poFilterSearch" placeholder="e.g. PR2025... or BEARING">
+                        </div>
+                        <div class="form-group">
+                            <label>Department</label>
+                            <select class="form-control" id="poFilterDept">
+                                <option value="">All</option>
+                                <option>Weaving</option><option>Dyeing</option><option>Finishing</option>
+                                <option>Raising</option><option>Cutting / Stitching</option><option>Packing</option>
+                                <option>Quality Control</option><option>Maintenance</option><option>Store</option>
+                                <option>Dispatch</option><option>Admin / HR</option><option>Accounts</option>
+                                <option>Other</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Priority</label>
+                            <select class="form-control" id="poFilterPriority">
+                                <option value="">All</option>
+                                <option>Normal</option><option>Urgent</option><option>Critical</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Req. No.</label>
+                            <input type="text" class="form-control" id="poFilterReqNo" placeholder="PR2025...">
+                        </div>
+                        <div>
+                            <button class="btn btn-primary" id="poRefreshBtn" style="height: 34px;">&#128260; Reload</button>
+                        </div>
+                        <div>
+                            <button class="btn btn-success" id="poBuildBtn" style="height: 34px;" disabled>🛒 Build PO (<span id="poSelCount">0</span>)</button>
+                        </div>
+                    </div>
+
+                    <div class="items-total-strip">
+                        <span class="totals-pill"><span class="lbl">Pending Items</span><span class="val" id="poPendingCount">0</span></span>
+                        <span class="totals-pill highlight"><span class="lbl">Selected</span><span class="val" id="poSelCount2">0</span></span>
+                        <span class="totals-pill success"><span class="lbl">Selected Qty</span><span class="val" id="poSelQty">0</span></span>
+                    </div>
+
+                    <div class="table-container" style="max-height: 480px;">
+                        <table class="po-pending-table">
+                            <thead>
+                                <tr>
+                                    <th style="width:30px; text-align:center;"><input type="checkbox" id="poSelectAll"></th>
+                                    <th>Req No</th>
+                                    <th>Sr</th>
+                                    <th>Item Name</th>
+                                    <th>Description</th>
+                                    <th>Make</th>
+                                    <th>Dept</th>
+                                    <th style="text-align:center;">Req Qty</th>
+                                    <th style="text-align:center;">Issued</th>
+                                    <th style="text-align:center;">Cancelled</th>
+                                    <th style="text-align:center;">In PO</th>
+                                    <th style="text-align:center; background:#dbeafe; color:#1d4ed8;">Available</th>
+                                    <th>UOM</th>
+                                    <th>Status</th>
+                                    <th>Priority</th>
+                                </tr>
+                            </thead>
+                            <tbody id="poPendingBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- ==== Sub-panel B: Generated POs list ==== -->
+                <div id="poListPanel" style="display:none;">
+                    <div class="filter-bar" style="grid-template-columns: 3fr 1fr auto;">
+                        <div class="form-group">
+                            <label>Search (PO No / Vendor / Req No)</label>
+                            <input type="text" class="form-control" id="poListSearch" placeholder="e.g. PO/U-2/0001 or vendor name">
+                        </div>
+                        <div class="form-group">
+                            <label>Status</label>
+                            <select class="form-control" id="poListStatus">
+                                <option value="">All</option>
+                                <option>Generated</option><option>GM/CEO Approved</option><option>MD Approved</option><option>Vendor Verified</option><option>Partially Received</option>
+                                <option>Received</option><option>Rejected</option><option>Cancelled</option>
+                            </select>
+                        </div>
+                        <div>
+                            <button class="btn btn-primary" id="poListRefreshBtn" style="height: 34px;">&#128260; Reload</button>
+                        </div>
+                    </div>
+
+                    <div class="items-total-strip">
+                        <span class="totals-pill"><span class="lbl">Showing</span><span class="val" id="poListCount">0</span></span>
+                    </div>
+
+                    <div class="table-container" style="max-height: 320px;">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>PO No</th>
+                                    <th>Date</th>
+                                    <th>Vendor</th>
+                                    <th>Linked Req(s)</th>
+                                    <th style="text-align:center;">Items</th>
+                                    <th style="text-align:center;">Qty</th>
+                                    <th style="text-align:center;background:#d1fae5;color:#047857;">Recv Qty</th>
+                                    <th style="text-align:right;">Grand Total</th>
+                                    <th>Status</th>
+                                    <th>PDF</th>
+                                    <th>WhatsApp</th>
+                                    <th>Edit</th>
+                                    <th>Cancel</th>
+                                </tr>
+                            </thead>
+                            <tbody id="poListBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ================== TAB 4: RECEIVING ITEMS ================== -->
+        <div class="tab-content" id="tab-receive">
+            <div class="card">
+                <h2 class="panel-title">📥 RECEIVING ITEMS (AGAINST PO)</h2>
+                <div class="panel-subtitle">Open a PO &middot; enter received qty per item &middot; capture Gate Pass No</div>
+
+                <div class="filter-bar" style="grid-template-columns: 2fr 1fr 1fr 1fr auto;">
+                    <div class="form-group">
+                        <label>Search (PO No / Vendor / Req)</label>
+                        <input type="text" class="form-control" id="recFilterSearch" placeholder="e.g. PO/U-2/0001 or vendor">
+                    </div>
+                    <div class="form-group">
+                        <label>Status</label>
+                        <select class="form-control" id="recFilterStatus">
+                            <option value="">All Open</option>
+                            <option>MD Approved</option>
+                            <option>Vendor Verified</option>
+                            <option>Partially Received</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>PO Date From</label>
+                        <input type="date" class="form-control" id="recFilterPoDateFrom">
+                    </div>
+                    <div class="form-group">
+                        <label>PO Date To</label>
+                        <input type="date" class="form-control" id="recFilterPoDateTo">
+                    </div>
+                    <div>
+                        <button class="btn btn-primary" id="recRefreshBtn" style="height: 34px;">&#128260; Reload</button>
+                    </div>
+                </div>
+
+                <div class="items-total-strip">
+                    <span class="totals-pill"><span class="lbl">Open POs</span><span class="val" id="recPoCount">0</span></span>
+                    <span class="totals-pill highlight"><span class="lbl">Ordered Qty</span><span class="val" id="recTotOrd">0</span></span>
+                    <span class="totals-pill success"><span class="lbl">Received Qty</span><span class="val" id="recTotRcv">0</span></span>
+                    <span class="totals-pill" style="background:#fef3c7;border-color:#fcd34d;color:#b45309;"><span class="lbl">Pending Qty</span><span class="val" id="recTotPnd">0</span></span>
+                </div>
+
+                <div class="table-container" style="max-height: 540px;">
+                    <table class="receiving-table">
+                        <thead>
+                            <tr>
+                                <th>PO No</th>
+                                <th>PO Date</th>
+                                <th>Vendor</th>
+                                <th>Linked Req(s)</th>
+                                <th style="text-align:center;">Items</th>
+                                <th style="text-align:center;">Pending Items</th>
+                                <th style="text-align:center;">Ordered</th>
+                                <th style="text-align:center;">Received</th>
+                                <th style="text-align:center;background:#fef3c7;color:#b45309;">Pending</th>
+                                <th>Status</th>
+                                <th style="text-align:center;">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="recPoBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- ================== TAB 5: SUMMARY ================== -->
+        <div class="tab-content" id="tab-summary">
+            <div class="card">
+                <h2 class="panel-title">📊 ITEMS &amp; PO SUMMARY DASHBOARD</h2>
+                <div class="panel-subtitle">Full per-item breakdown across all requirements &middot; PO PDF links inline</div>
+
+                <div class="filter-bar" style="grid-template-columns: 2fr 1fr 1fr 1fr 1fr auto;">
+                    <div class="form-group">
+                        <label>Search (Req / Item / Person / PO)</label>
+                        <input type="text" class="form-control" id="sumFilterSearch" placeholder="e.g. PR2025... or BEARING or PO/U-2/...">
+                    </div>
+                    <div class="form-group">
+                        <label>Item Status</label>
+                        <select class="form-control" id="sumFilterStatus">
+                            <option value="">All</option>
+                            <option>Pending</option>
+                            <option>PO Generated</option>
+                            <option>GM/CEO Approved</option>
+                            <option>MD Approved</option>
+                            <option>Vendor Verified</option>
+                            <option>Partially Received</option>
+                            <option>Received</option>
+                            <option>Partially Issued</option>
+                            <option>Fully Issued</option>
+                            <option>Cancelled</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Department</label>
+                        <select class="form-control" id="sumFilterDept">
+                            <option value="">All</option>
+                            <option>Weaving</option><option>Dyeing</option><option>Finishing</option>
+                            <option>Raising</option><option>Cutting / Stitching</option><option>Packing</option>
+                            <option>Quality Control</option><option>Maintenance</option><option>Store</option>
+                            <option>Dispatch</option><option>Admin / HR</option><option>Accounts</option>
+                            <option>Other</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Priority</label>
+                        <select class="form-control" id="sumFilterPriority">
+                            <option value="">All</option>
+                            <option>Normal</option><option>Urgent</option><option>Critical</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Req. No.</label>
+                        <input type="text" class="form-control" id="sumFilterReqNo" placeholder="PR2025...">
+                    </div>
+                    <div>
+                        <button class="btn btn-primary" id="sumRefreshBtn" style="height: 34px;">&#128260; Reload</button>
+                    </div>
+                </div>
+
+                <!-- Date Range Filters Row -->
+                <div class="filter-bar" style="grid-template-columns: 1fr 1fr 1fr 1fr auto auto; margin-top:-4px;">
+                    <div class="form-group">
+                        <label>Request Date From</label>
+                        <input type="date" class="form-control" id="sumReqDateFrom">
+                    </div>
+                    <div class="form-group">
+                        <label>Request Date To</label>
+                        <input type="date" class="form-control" id="sumReqDateTo">
+                    </div>
+                    <div class="form-group">
+                        <label style="color:#1d4ed8;">PO Date From</label>
+                        <input type="date" class="form-control" id="sumPoDateFrom" style="background:#dbeafe;">
+                    </div>
+                    <div class="form-group">
+                        <label style="color:#1d4ed8;">PO Date To</label>
+                        <input type="date" class="form-control" id="sumPoDateTo" style="background:#dbeafe;">
+                    </div>
+                    <div>
+                        <button class="btn btn-neutral btn-sm" id="sumClearDatesBtn" style="height: 34px;" title="Clear all date filters">&#10006; Clear Dates</button>
+                    </div>
+                    <div>
+                        <span class="totals-pill" id="sumDateActivePill" style="display:none;height:34px;background:#fef3c7;border-color:#fcd34d;"><span class="lbl">Date Filter</span><span class="val" style="color:#b45309;">ACTIVE</span></span>
+                    </div>
+                </div>
+
+                <div class="items-total-strip">
+                    <span class="totals-pill"><span class="lbl">Rows</span><span class="val" id="sumCount">0</span></span>
+                    <span class="totals-pill highlight"><span class="lbl">Total Requested</span><span class="val" id="sumTotalReq">0</span></span>
+                    <span class="totals-pill success"><span class="lbl">Issued</span><span class="val" id="sumTotalIssued">0</span></span>
+                    <span class="totals-pill" style="background:#d1fae5;border-color:#6ee7b7;color:#047857;"><span class="lbl">Received</span><span class="val" id="sumTotalReceived">0</span></span>
+                    <span class="totals-pill" style="background:#fee2e2;border-color:#fca5a5;color:#b91c1c;"><span class="lbl">Cancelled</span><span class="val" id="sumTotalCancel">0</span></span>
+                    <span class="totals-pill" style="background:#dbeafe;border-color:#93c5fd;color:#1d4ed8;"><span class="lbl">In PO</span><span class="val" id="sumTotalPO">0</span></span>
+                    <button class="btn btn-success btn-sm" id="sumExportCsvBtn" style="margin-left:auto;">&#128190; Export CSV</button>
+                </div>
+
+                <div class="table-container" style="max-height: 580px;">
+                    <table class="summary-table">
+                        <thead>
+                            <tr>
+                                <th>Requirement No</th>
+                                <th>Request Date</th>
+                                <th>Person Name</th>
+                                <th>Item Name</th>
+                                <th>Item Description</th>
+                                <th>Make / Brand</th>
+                                <th>Category</th>
+                                <th style="text-align:center;">Qty Requested</th>
+                                <th style="text-align:center;">Qty Issued</th>
+                                <th style="text-align:center;">Qty Cancelled</th>
+                                <th style="text-align:center;">Qty PO Generated</th>
+                                <th style="text-align:center;background:#d1fae5;color:#047857;">Received Qty</th>
+                                <th>Gate Pass No</th>
+                                <th>Item Status</th>
+                                <th>PO No (If Generated)</th>
+                                <th>PO PDF (If Generated)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="summaryBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============ PO BUILD MODAL ============ -->
+    <div class="modal-overlay" id="poBuildModal">
+        <div class="modal-box" style="max-width: 1000px; width: 100%; max-height: 92vh; overflow-y: auto;">
+            <h3 class="modal-title">🛒 Build New Purchase Order</h3>
+            <p class="modal-sub">Fill vendor &amp; pricing details. PDF will auto-generate &amp; save to Drive.</p>
+
+            <div class="grid-4">
+                <div class="form-group">
+                    <label>PO Number (Auto)</label>
+                    <input type="text" class="form-control" id="poNoField" placeholder="Auto" readonly title="Auto-assigned by server on save. If blank, the server will assign the next available PO number." style="font-weight:700; background:#e2e8f0; color:#0284c7; cursor:not-allowed;">
+                    <input type="hidden" id="poNoLocked" value="1">
+                </div>
+                <div class="form-group">
+                    <label>PO Date <span class="req">*</span></label>
+                    <input type="date" class="form-control" id="poDateField">
+                </div>
+                <div class="form-group">
+                    <label>Delivery Date</label>
+                    <input type="date" class="form-control" id="poDeliveryField">
+                </div>
+                <div class="form-group">
+                    <label>Created By</label>
+                    <input type="text" class="form-control" id="poCreatedByField" placeholder="Your name">
+                </div>
+            </div>
+
+            <div class="grid-3" style="margin-bottom:8px;">
+                <div class="form-group">
+                    <label>Vendor (M/s) <span class="req">*</span></label>
+                    <input type="text" class="form-control" id="poVendorField" placeholder="Vendor name" list="vendorDatalist" autocomplete="off">
+                    <datalist id="vendorDatalist"></datalist>
+                </div>
+                <div class="form-group">
+                    <label>Vendor Mail ID <small style="color:#94a3b8;">(optional)</small></label>
+                    <input type="email" class="form-control" id="poVendorMailField" placeholder="e.g. vendor@example.com">
+                </div>
+                <div class="form-group">
+                    <label>Vendor Contact</label>
+                    <input type="text" class="form-control" id="poVendorContactField" placeholder="phone / email">
+                </div>
+            </div>
+
+            <div class="grid-3" style="margin-bottom:10px;">
+                <div class="form-group" style="grid-column: span 2;">
+                    <label>Vendor Address</label>
+                    <textarea class="form-control" id="poVendorAddressField" rows="2" placeholder="Vendor full address"></textarea>
+                </div>
+                <div class="form-group">
+                    <label>Payment Terms</label>
+                    <select class="form-control" id="poPaymentTermsField">
+                        <option value="Payment terms 0 days after receipt of bill">0 days</option>
+                        <option value="Payment terms 7 days after receipt of bill">7 days</option>
+                        <option value="Payment terms 15 days after receipt of bill">15 days</option>
+                        <option value="Payment terms 30 days after receipt of bill">30 days</option>
+                        <option value="Payment terms 60 days after receipt of bill">60 days</option>
+                        <option value="Payment terms 90 days after receipt of bill" selected>90 days</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="grid-3" style="margin-bottom:10px;">
+                <div class="form-group" style="grid-column: span 2;">
+                    <label>Contact For Location or Confirmation</label>
+                    <input type="text" class="form-control" id="poLocationContactField" placeholder="+91 xxxxxxxxxxxx">
+                </div>
+            </div>
+
+            <div class="section-header-row" style="margin-top:6px;">
+                <h4 class="section-title" style="font-size:12px;">Items in this PO</h4>
+            </div>
+            <div class="table-container" style="max-height: 260px;">
+                <table id="poBuildTable">
+                    <thead>
+                        <tr>
+                            <th style="width:3%; text-align:center;">Sr</th>
+                            <th style="width:9%;">Req No</th>
+                            <th style="width:13%;">Item Name</th>
+                            <th style="width:10%;">Description</th>
+                            <th style="width:7%;">Make</th>
+                            <th style="width:5%; text-align:center;" title="Available qty for this PO">Avail</th>
+                            <th style="width:8%; background:#dbeafe; color:#1d4ed8;">PO Qty <span style="color:#dc2626;">*</span></th>
+                            <th style="width:6%; background:#fef2f2; color:#b91c1c;" title="Cancel remaining qty now (optional)">Cancel</th>
+                            <th style="width:4%;">UOM</th>
+                            <th style="width:7%; background:#fef9c3; color:#854d0e;">Gross Wt (kg)</th>
+                            <th style="width:7%; background:#e0f2fe; color:#0369a1;">Bill Basis</th>
+                            <th style="width:10%;">Unit Price <span style="color:#dc2626;">*</span></th>
+                            <th style="width:8%; text-align:right;">Total</th>
+                        </tr>
+                    </thead>
+                    <tbody id="poBuildBody"></tbody>
+                </table>
+            </div>
+
+            <div class="grid-4" style="margin-top:14px;">
+                <div class="form-group">
+                    <label>GST %</label>
+                    <input type="number" class="form-control" id="poGstPctField" min="0" max="100" step="0.01" value="18">
+                </div>
+                <div class="form-group">
+                    <label>Freight (₹)</label>
+                    <input type="number" class="form-control" id="poFreightField" min="0" step="0.01" value="0">
+                </div>
+                <div class="form-group">
+                    <label>Other Exp. Label</label>
+                    <input type="text" class="form-control" id="poOtherLabelField" value="Labour Other Exp.">
+                </div>
+                <div class="form-group">
+                    <label>Other Exp. (₹)</label>
+                    <input type="number" class="form-control" id="poOtherExpField" min="0" step="0.01" value="0">
+                </div>
+            </div>
+
+            <div class="items-total-strip" style="margin-top:10px;">
+                <span class="totals-pill"><span class="lbl">Subtotal</span><span class="val" id="poSubtotalView">0.00</span></span>
+                <span class="totals-pill"><span class="lbl">GST</span><span class="val" id="poGstAmtView">0.00</span></span>
+                <span class="totals-pill"><span class="lbl">Freight</span><span class="val" id="poFreightView">0.00</span></span>
+                <span class="totals-pill"><span class="lbl" id="poOtherViewLbl">Other</span><span class="val" id="poOtherView">0.00</span></span>
+                <span class="totals-pill success"><span class="lbl">Grand Total</span><span class="val" id="poGrandTotalView">0.00</span></span>
+            </div>
+
+            <div class="form-group" style="margin-top:10px;">
+                <label>Important Notes</label>
+                <textarea class="form-control" id="poNotesField" rows="2" placeholder="Special instructions, packaging, etc."></textarea>
+            </div>
+
+            <!-- ============ PO ATTACHMENT IMAGES ============ -->
+            <div style="margin-top:14px;padding:12px;background:#f0f9ff;border:1px solid #bae6fd;border-radius:8px;">
+                <div style="font-weight:700;color:#0369a1;margin-bottom:8px;font-size:13px;">
+                    📎 Attach Images (will appear on next page of PO PDF)
+                </div>
+                <input type="file" id="poAttachFiles" accept="image/jpeg,image/png,image/webp" multiple
+                       style="font-size:12px;margin-bottom:8px;">
+                <div id="poAttachPreview" style="display:flex;flex-wrap:wrap;gap:8px;min-height:24px;"></div>
+                <div style="font-size:10px;color:#64748b;margin-top:4px;">
+                    Max 5 images · JPG / PNG / WEBP · Each ≤ 2 MB · Images print on separate page(s) after PO details
+                </div>
+            </div>
+
+            <!-- Digital signature for Store Incharge (DRAWN) -->
+            <div style="margin-top:14px; padding:12px 14px; background:#f0fdf4; border:2px solid #6ee7b7; border-radius:8px;">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+                    <div style="font-weight:800; color:#047857; font-size:13px; text-transform:uppercase; letter-spacing:0.5px;">
+                        🖊️ Store Incharge - Draw Digital Signature <span style="color:#dc2626;">*</span>
+                    </div>
+                    <div style="font-size:11px;color:#475569;" id="poStoreSignTimeField">--</div>
+                </div>
+                <div style="border:2px dashed #047857;border-radius:6px;background:#fff;">
+                    <canvas id="poStoreSignCanvas" width="900" height="140"
+                            style="display:block;width:100%;height:140px;cursor:crosshair;touch-action:none;background:#fff;border-radius:4px 4px 0 0;"></canvas>
+                    <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 10px;background:#f8fafc;border-top:1px solid #e2e8f0;border-radius:0 0 4px 4px;font-size:11px;">
+                        <span style="color:#64748b;" id="poStoreSignHint">Sign with mouse / touch / stylus</span>
+                        <button type="button" class="btn btn-neutral btn-sm" id="poStoreSignClearBtn" style="padding:4px 12px;font-size:11px;">✖ Clear</button>
+                    </div>
+                </div>
+                <div style="font-size:11px; color:#475569; margin-top:6px;">
+                    ⓘ After generation, approval emails will be sent to <b>GM/CEO</b> &amp; <b>MD</b> to draw their digital signatures.
+                    Once all 3 signatures are recorded, the fully-signed PDF is auto-emailed to vendor.
+                </div>
+            </div>
+
+            <div class="modal-actions" style="margin-top: 14px;">
+                <button class="btn btn-neutral" id="poBuildCancelBtn">Cancel</button>
+                <button class="btn btn-success" id="poBuildConfirmBtn">🛒 Generate PO, Sign &amp; Send for Approval</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============ PO EDIT MODAL (#6 1-hour editable) ============ -->
+    <div class="modal-overlay" id="poEditModal">
+        <div class="modal-box lg" style="max-height: 92vh; overflow-y: auto;">
+            <h3 class="modal-title">✏️ Edit PO <span id="poEditNoLabel" style="color:#0284c7;"></span></h3>
+            <p class="modal-sub" id="poEditWindowLabel" style="color:#b45309;font-weight:600;"></p>
+
+            <div class="grid-3" style="margin-bottom:10px;">
+                <div class="form-group" style="grid-column: span 2;">
+                    <label>Vendor (M/s)</label>
+                    <input type="text" class="form-control" id="poEditVendorName">
+                </div>
+                <div class="form-group">
+                    <label>Vendor Mail ID</label>
+                    <input type="text" class="form-control" id="poEditVendorMail">
+                </div>
+            </div>
+            <div class="grid-3" style="margin-bottom:10px;">
+                <div class="form-group" style="grid-column: span 2;">
+                    <label>Vendor Address</label>
+                    <textarea class="form-control" id="poEditVendorAddress" rows="2"></textarea>
+                </div>
+                <div class="form-group">
+                    <label>Vendor Contact</label>
+                    <input type="text" class="form-control" id="poEditVendorContact">
+                </div>
+            </div>
+            <div class="grid-4" style="margin-bottom:10px;">
+                <div class="form-group">
+                    <label>Delivery Date</label>
+                    <input type="date" class="form-control" id="poEditDeliveryDate">
+                </div>
+                <div class="form-group">
+                    <label>Payment Terms</label>
+                    <select class="form-control" id="poEditPaymentTerms">
+                        <option value="Payment terms 0 days after receipt of bill">0 days</option>
+                        <option value="Payment terms 7 days after receipt of bill">7 days</option>
+                        <option value="Payment terms 15 days after receipt of bill">15 days</option>
+                        <option value="Payment terms 30 days after receipt of bill">30 days</option>
+                        <option value="Payment terms 60 days after receipt of bill">60 days</option>
+                        <option value="Payment terms 90 days after receipt of bill">90 days</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>GST %</label>
+                    <input type="number" class="form-control" id="poEditGstPct" min="0" step="0.01">
+                </div>
+                <div class="form-group">
+                    <label>Contact For Location or Confirmation</label>
+                    <input type="text" class="form-control" id="poEditLocationContact" placeholder="+91 xxxxxxxxxxxx">
+                </div>
+            </div>
+            <div class="grid-3" style="margin-bottom:10px;">
+                <div class="form-group">
+                    <label>Freight / Transport</label>
+                    <input type="number" class="form-control" id="poEditFreight" min="0" step="0.01">
+                </div>
+                <div class="form-group">
+                    <label>Other Exp. Label</label>
+                    <input type="text" class="form-control" id="poEditOtherLabel" value="Labour Other Exp.">
+                </div>
+                <div class="form-group">
+                    <label>Other Expense</label>
+                    <input type="number" class="form-control" id="poEditOtherExp" min="0" step="0.01">
+                </div>
+            </div>
+            <div class="form-group" style="margin-bottom:10px;">
+                <label>Important Notes</label>
+                <textarea class="form-control" id="poEditNotes" rows="2"></textarea>
+            </div>
+
+            <div class="table-container" style="max-height: 240px;">
+                <table>
+                    <thead>
+                        <tr>
+                            <th style="width:6%;">Sr</th>
+                            <th>Item Name</th>
+                            <th style="text-align:center;width:10%;">Qty</th>
+                            <th style="text-align:center;width:8%;">UOM</th>
+                            <th style="width:16%;">Unit Price</th>
+                            <th style="text-align:right;width:14%;">Total</th>
+                        </tr>
+                    </thead>
+                    <tbody id="poEditItemsBody"></tbody>
+                </table>
+            </div>
+            <div class="items-total-strip" style="margin-top:8px;">
+                <span class="totals-pill"><span class="lbl">Grand Total (live)</span><span class="val" id="poEditGrandTotalView">0.00</span></span>
+            </div>
+
+            <div class="modal-actions" style="margin-top: 14px;">
+                <button class="btn btn-neutral" id="poEditCancelBtn">Cancel</button>
+                <button class="btn btn-success" id="poEditSaveBtn">💾 Save Changes</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============ RECEIVE PO ITEMS MODAL ============ -->
+    <div class="modal-overlay" id="receiveModal">
+        <div class="modal-box" style="max-width: 1050px; width: 100%; max-height: 92vh; overflow-y: auto;">
+            <h3 class="modal-title">📥 Receive Items Against PO</h3>
+            <p class="modal-sub" id="receiveModalSub">PO: -</p>
+
+            <div class="grid-4" style="margin-bottom:10px;">
+                <div class="form-group">
+                    <label>PO No</label>
+                    <input type="text" class="form-control" id="rcvPoNoField" readonly style="background:#f1f5f9;font-weight:700;color:#0284c7;">
+                </div>
+                <div class="form-group">
+                    <label>Vendor</label>
+                    <input type="text" class="form-control" id="rcvVendorField" readonly style="background:#f1f5f9;">
+                </div>
+                <div class="form-group">
+                    <label>Receipt Date <span class="req">*</span></label>
+                    <input type="date" class="form-control" id="rcvDateField">
+                </div>
+                <div class="form-group">
+                    <label>Received By <span class="req">*</span></label>
+                    <input type="text" class="form-control" id="rcvByField" placeholder="Your name">
+                </div>
+            </div>
+
+            <div class="grid-3" style="margin-bottom:6px;">
+                <div class="form-group" style="grid-column: span 2;">
+                    <label>Gate Pass No <span class="req">*</span></label>
+                    <input type="text" class="form-control" id="rcvGpField" placeholder="e.g. GP-2026-0142" style="font-weight:700;background:#fef3c7;">
+                </div>
+                <div class="form-group">
+                    <label>Overall Remarks</label>
+                    <input type="text" class="form-control" id="rcvRemarksField" placeholder="optional">
+                </div>
+            </div>
+
+            <div class="section-header-row" style="margin-top:6px;">
+                <h4 class="section-title" style="font-size:12px;">Items - Enter Received Qty for this receipt</h4>
+                <div style="display:flex;gap:8px;align-items:center;">
+                    <button class="btn btn-neutral btn-sm" id="rcvFillPendingBtn">⚡ Fill = All Pending</button>
+                    <button class="btn btn-neutral btn-sm" id="rcvClearAllBtn">✖ Clear All</button>
+                </div>
+            </div>
+            <div class="table-container" style="max-height: 320px;">
+                <table id="rcvBuildTable">
+                    <thead>
+                        <tr>
+                            <th style="width:4%; text-align:center;">Sr</th>
+                            <th style="width:10%;">Req No</th>
+                            <th style="width:16%;">Item Name</th>
+                            <th style="width:9%;">Make</th>
+                            <th style="width:4%;">UOM</th>
+                            <th style="width:7%; text-align:center;">Ordered</th>
+                            <th style="width:7%; text-align:center;">Already Recv</th>
+                            <th style="width:7%; text-align:center;background:#fef3c7;color:#b45309;">Pending</th>
+                            <th style="width:9%; background:#d1fae5;color:#047857;">Receive Now <span style="color:#dc2626;">*</span></th>
+                            <th style="width:9%; background:#fef9c3;color:#854d0e;">Gross Wt Recv (kg)</th>
+                            <th style="width:14%;">Remarks</th>
+                        </tr>
+                    </thead>
+                    <tbody id="rcvBuildBody"></tbody>
+                </table>
+            </div>
+
+            <div class="items-total-strip" style="margin-top:10px;">
+                <span class="totals-pill"><span class="lbl">Ordered Total</span><span class="val" id="rcvTotOrd">0</span></span>
+                <span class="totals-pill success"><span class="lbl">Already Received</span><span class="val" id="rcvTotAlready">0</span></span>
+                <span class="totals-pill"><span class="lbl">Pending</span><span class="val" id="rcvTotPending">0</span></span>
+                <span class="totals-pill" style="background:#d1fae5;border-color:#6ee7b7;color:#047857;"><span class="lbl">This Receipt</span><span class="val" id="rcvTotNow">0</span></span>
+            </div>
+
+            <div class="modal-actions" style="margin-top: 14px;">
+                <button class="btn btn-neutral" id="rcvCancelBtn">Cancel</button>
+                <button class="btn btn-success" id="rcvConfirmBtn">📥 Save Receipt</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============ RECEIVE DIAGNOSTIC MODAL ============ -->
+    <div class="modal-overlay" id="rcvDiagModal">
+        <div class="modal-box" style="max-width:680px;">
+            <h3 class="modal-title" style="color:#dc2626;">🔍 Receive Button — Diagnostic Report</h3>
+            <p class="modal-sub" id="rcvDiagSub">PO: —</p>
+            <div id="rcvDiagBody" style="max-height:420px;overflow-y:auto;font-size:13px;line-height:1.6;"></div>
+            <div class="modal-actions" style="margin-top:12px;">
+                <button class="btn btn-neutral" onclick="document.getElementById('rcvDiagModal').classList.remove('active');">Close</button>
             </div>
         </div>
     </div>
@@ -912,7 +1653,7 @@
        ███████████████████████████████████████████████████████████████████
        ═══════════════════════════════════════════════════════════════════ */
 
-    const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxofR8KXv3zRA2KgJEjvtk1JwbpIjeqecqEDDnlTfnpH9ujqSI3jMiEyMVZTjY1DD9sTA/exec";
+    const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycby9Q40WQhfnsB8NXVqkWrvTlyGJiddYSfr5th2vHqt6YkvPyAUFVQScElAUrgGNo6QB/exec";
 
     /* ═══════════════════════════════════════════════════════════════════
        ⬆️ Bas yahi ek line edit karni hai - aage kuch chedhna nahi. ⬆️
@@ -925,6 +1666,7 @@
     const SUBMITTED_KEY  = 'sarv_item_req_submitted_v1';
     const PENDING_KEY    = 'sarv_pending_sync_queue_v1';
     const UPDATED_BY_KEY = 'sarv_updated_by_v1';
+    const WA_COUNT_KEY   = 'sarv_wa_count_v1';
 
     // Detect if URL is set & valid
     const URL_IS_CONFIGURED = (function(){
@@ -953,22 +1695,21 @@
     function pad(n,w=2){ return String(n).padStart(w,'0'); }
     function todayISO(){ const d=new Date(); return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate()); }
 
-    function generateReqNo(){
-        const d=new Date();
-        const ymd = d.getFullYear()+pad(d.getMonth()+1)+pad(d.getDate());
-        let counterData = {};
-        try { counterData = JSON.parse(localStorage.getItem(COUNTER_KEY) || '{}'); } catch(e){}
-        const next = (counterData[ymd] || 0) + 1;
-        return 'PR' + ymd + '-' + pad(next, 4);
-    }
+    // #1 PR serial = plain increasing number (NOT date-based). Server is the source
+    // of truth; the local counter is only an offline fallback.
+    function localReqCounter(){ let n=0; try { n = parseInt(localStorage.getItem(COUNTER_KEY)||'0',10)||0; } catch(e){} return n; }
+    function generateReqNo(){ return 'PR' + pad(localReqCounter()+1, 4); }
+    function bumpCounter(){ try { localStorage.setItem(COUNTER_KEY, String(localReqCounter()+1)); } catch(e){} }
 
-    function bumpCounter(){
-        const d=new Date();
-        const ymd = d.getFullYear()+pad(d.getMonth()+1)+pad(d.getDate());
-        let counterData = {};
-        try { counterData = JSON.parse(localStorage.getItem(COUNTER_KEY) || '{}'); } catch(e){}
-        counterData[ymd] = (counterData[ymd] || 0) + 1;
-        localStorage.setItem(COUNTER_KEY, JSON.stringify(counterData));
+    async function refreshReqNo(){
+        let no = generateReqNo();
+        if (URL_IS_CONFIGURED){
+            try {
+                const r = await syncToCloud({ action: 'nextReqNo' });
+                if (r && r.status === 'OK' && r.reqNo) no = r.reqNo;
+            } catch(e){}
+        }
+        $('reqNoField').value = no;
     }
 
     function escapeHtml(s){
@@ -993,7 +1734,10 @@
             document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
             link.classList.add('active');
             $('tab-' + tab).classList.add('active');
-            if (tab === 'manage') loadRequirementsList();
+            if (tab === 'manage')  loadRequirementsList();
+            if (tab === 'po')      showPoSubPanel('pending');
+            if (tab === 'receive') loadReceivingPOs();
+            if (tab === 'summary') loadSummary();
         });
     });
 
@@ -1028,8 +1772,53 @@
         }
     }
 
+    /* ---------- ITEM LIBRARY (autocomplete catalogue) ---------- */
+    let ITEM_LIBRARY = [];   // array of {itemName, itemDesc, make, category, machineNo, uom, useCount}
+
+    function updateItemDatalistsFromLibrary() {
+        const names    = $('dl-item-names');
+        const descs    = $('dl-item-descs');
+        const makes    = $('dl-item-makes');
+        const machines = $('dl-item-machines');
+        if (!names) return;
+
+        // Build unique sorted sets for each field
+        const uniqueDescs    = [...new Set(ITEM_LIBRARY.map(i => i.itemDesc).filter(Boolean))];
+        const uniqueMakes    = [...new Set(ITEM_LIBRARY.map(i => i.make).filter(Boolean))];
+        const uniqueMachines = [...new Set(ITEM_LIBRARY.map(i => i.machineNo).filter(Boolean))];
+
+        names.innerHTML    = ITEM_LIBRARY.map(i => '<option value="'+escapeHtml(i.itemName)+'">').join('');
+        descs.innerHTML    = uniqueDescs.map(v => '<option value="'+escapeHtml(v)+'">').join('');
+        makes.innerHTML    = uniqueMakes.map(v => '<option value="'+escapeHtml(v)+'">').join('');
+        machines.innerHTML = uniqueMachines.map(v => '<option value="'+escapeHtml(v)+'">').join('');
+    }
+
+    function applyLibraryToRow(tr, match) {
+        const descInp    = tr.querySelector('.col-desc');
+        const makeInp    = tr.querySelector('.col-make');
+        const catSel     = tr.querySelector('.col-cat');
+        const machineInp = tr.querySelector('.col-machine');
+        const uomSel     = tr.querySelector('.col-uom');
+        // Only fill blank fields so the user's existing edits are never overwritten.
+        if (match.itemDesc  && descInp    && !descInp.value.trim())    descInp.value    = match.itemDesc;
+        if (match.make      && makeInp    && !makeInp.value.trim())     makeInp.value    = match.make;
+        if (match.category  && catSel)                                  catSel.value     = match.category;
+        if (match.machineNo && machineInp && !machineInp.value.trim())  machineInp.value = match.machineNo;
+        if (match.uom       && uomSel)                                  uomSel.value     = match.uom;
+    }
+
+    async function loadItemLibrary() {
+        try {
+            const r = await syncToCloud({ action: 'getItemLibrary' });
+            if (r && r.status === 'OK' && Array.isArray(r.items)) {
+                ITEM_LIBRARY = r.items;
+                updateItemDatalistsFromLibrary();
+            }
+        } catch(e) {}
+    }
+
     /* ---------- ITEM ROW (ENTRY TAB) ---------- */
-    const CATEGORIES = ['-- Select --','Raw Material - Yarn','Raw Material - Fabric','Raw Material - Dyes/Chemicals','Packing Material','CCTV','Spare Parts','Consumables','Tools / Equipment','Stationery','Safety / PPE','Electrical','Other'];
+    const CATEGORIES = ['-- Select --','Raw Material - Yarn','Raw Material - Fabric','Raw Material - Dyes/Chemicals','Packing Material','Spare Parts','Consumables','Tools / Equipment','Stationery','Safety / PPE','Electrical','Other'];
     const UOMS = ['Pcs','Kg','Gm','Mtr','Ltr','Box','Roll','Set','Bag','Pkt','Pair','Other'];
 
     function buildCatOptions(selected){
@@ -1052,12 +1841,14 @@
         const tr = document.createElement('tr');
         tr.innerHTML = `
             <td class="sr-cell"></td>
-            <td><input type="text" class="table-input col-name" placeholder="Item Name" value="${escapeHtml(data.itemName||'')}"></td>
-            <td><input type="text" class="table-input col-desc" placeholder="Detailed spec / size / color" value="${escapeHtml(data.itemDesc||'')}"></td>
-            <td><input type="text" class="table-input col-make" placeholder="Make / Brand" value="${escapeHtml(data.make||'')}"></td>
+            <td><input type="text" class="table-input col-name" placeholder="Item Name" list="dl-item-names" autocomplete="off" value="${escapeHtml(data.itemName||'')}"></td>
+            <td><input type="text" class="table-input col-desc" placeholder="Detailed spec / size / color" list="dl-item-descs" autocomplete="off" value="${escapeHtml(data.itemDesc||'')}"></td>
+            <td><input type="text" class="table-input col-make" placeholder="Make / Brand" list="dl-item-makes" autocomplete="off" value="${escapeHtml(data.make||'')}"></td>
             <td><select class="table-select col-cat">${buildCatOptions(data.category||'')}</select></td>
+            <td><input type="text" class="table-input col-machine" placeholder="e.g. Loom-3 / M-12" list="dl-item-machines" autocomplete="off" value="${escapeHtml(data.machineNo||'')}"></td>
             <td><input type="number" class="table-input col-qty" placeholder="0" min="0" step="any" value="${data.qty||''}"></td>
             <td><select class="table-select col-uom">${buildUomOptions(data.uom||'Pcs')}</select></td>
+            <td><input type="number" class="table-input col-grossweight" placeholder="kg" min="0" step="any" value="${(data.grossWeight!=null&&data.grossWeight!=='')?data.grossWeight:''}" style="background:#fef9c3;"></td>
             <td><input type="text" class="table-input col-rem" placeholder="optional note" value="${escapeHtml(data.remarks||'')}"></td>
             <td style="text-align:center;"><button class="delete-row-btn" title="Remove">&times;</button></td>
         `;
@@ -1074,9 +1865,22 @@
             el.addEventListener('change',()=>{ recalcTotals(); saveDraft(); });
         });
 
+        // Auto-fill other fields when a known Item Name is selected from the datalist.
+        // Fires on both keyboard selection and paste — only populates blank sibling fields.
+        const nameInp = tr.querySelector('.col-name');
+        const tryAutoFill = () => {
+            const val = nameInp.value.trim().toLowerCase();
+            if (!val) return;
+            const match = ITEM_LIBRARY.find(it => it.itemName.toLowerCase() === val);
+            if (match) applyLibraryToRow(tr, match);
+        };
+        nameInp.addEventListener('input',  tryAutoFill);
+        nameInp.addEventListener('change', tryAutoFill);
+
         refreshSerials();
         recalcTotals();
     }
+
 
     function refreshSerials(){
         document.querySelectorAll('#itemTableBody tr').forEach((tr,i)=>{
@@ -1109,8 +1913,15 @@
                 itemDesc: r.querySelector('.col-desc').value.trim(),
                 make:     r.querySelector('.col-make').value.trim(),
                 category: r.querySelector('.col-cat').value,
+                machineNo: r.querySelector('.col-machine').value.trim(),
                 qty:      parseFloat(r.querySelector('.col-qty').value) || 0,
                 uom:      r.querySelector('.col-uom').value,
+                grossWeight: (function(){
+                    const gw = r.querySelector('.col-grossweight');
+                    if (gw.value === '') return null;
+                    const v = parseFloat(gw.value);
+                    return isNaN(v) ? null : v;
+                })(),
                 remarks:  r.querySelector('.col-rem').value.trim()
             });
         });
@@ -1127,6 +1938,8 @@
             machine:         $('reqMachine').value.trim(),
             purpose:         $('reqPurpose').value.trim(),
             overallRemarks:  $('overallRemarks').value.trim(),
+            generatedBy:     $('reqGeneratedBy').value.trim(),
+            lastDateUsed:    $('reqLastDateUsed').value,
             items:           items,
             savedAt:         new Date().toISOString()
         };
@@ -1162,6 +1975,8 @@
             $('reqMachine').value      = d.machine || '';
             $('reqPurpose').value      = d.purpose || '';
             $('overallRemarks').value  = d.overallRemarks || '';
+            $('reqGeneratedBy').value  = d.generatedBy || localStorage.getItem('sarv_pr_generator_v1') || '';
+            $('reqLastDateUsed').value = d.lastDateUsed || '';
 
             $('itemTableBody').innerHTML = '';
             if (Array.isArray(d.items) && d.items.length){
@@ -1177,7 +1992,7 @@
         const required = [
             ['reqDate','Date'],['requiredByDate','Required By Date'],
             ['reqPersonName','Person Name'],['reqDepartment','Department'],
-            ['reqPurpose','Purpose / Reason']
+            ['reqPurpose','Purpose / Reason'],['reqGeneratedBy','Purchaser Name']
         ];
         for (const [id,label] of required){
             const el = $(id);
@@ -1276,14 +2091,27 @@
         if (!URL_IS_CONFIGURED) {
             return { status:'ERROR', message:'Apps Script URL not configured in HTML file' };
         }
-        const res = await fetch(APPS_SCRIPT_URL, {
-            method: 'POST', mode: 'cors', redirect: 'follow',
-            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-            body:   JSON.stringify(payload)
-        });
-        const text = await res.text();
-        try { return JSON.parse(text); }
-        catch(e){ return { status:'ERROR', message:'Invalid server response: '+text.slice(0,150) }; }
+        // 60-second timeout — PDF generation + email dispatch can take ~40s on cold starts.
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort(), 60000);
+        try {
+            const res = await fetch(APPS_SCRIPT_URL, {
+                method: 'POST', mode: 'cors', redirect: 'follow',
+                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                body:   JSON.stringify(payload),
+                signal: controller.signal
+            });
+            const text = await res.text();
+            try { return JSON.parse(text); }
+            catch(e){ return { status:'ERROR', message:'Invalid server response: '+text.slice(0,150) }; }
+        } catch(err) {
+            if (err.name === 'AbortError') {
+                return { status:'ERROR', message:'Request timed out (>60s). The server may be generating a PDF or sending email — it could still complete in the background. Refresh the list in a moment to confirm.' };
+            }
+            throw err;
+        } finally {
+            clearTimeout(timer);
+        }
     }
 
     function queuePending(data){
@@ -1306,9 +2134,38 @@
         if (remaining.length === 0) showToast('&#9989; All pending synced!', 'success', 4000);
     }
 
+    let EDIT_MODE = null;   // #4 holds reqNo when editing an existing PR
+
     async function doSubmit(){
         const data = gatherFormData();
         data.items = data.items.filter(it => it.itemName && it.qty > 0);
+        if (data.generatedBy) localStorage.setItem('sarv_pr_generator_v1', data.generatedBy);
+
+        // #4 edit mode: update existing PR instead of creating a new one
+        if (EDIT_MODE){
+            data.action    = 'editRequirement';
+            data.reqNo     = EDIT_MODE;
+            data.updatedBy = data.generatedBy;
+            closeConfirmModal();
+            showSyncOverlay('Updating requirement...');
+            try {
+                const result = await syncToCloud(data);
+                hideSyncOverlay();
+                if (result.status === 'OK'){
+                    showToast('&#9989; <b>'+EDIT_MODE+'</b> updated.', 'success', 6000);
+                    if (result.pdfUrl) openPdfForPrint(result.pdfUrl, EDIT_MODE);
+                    exitEditMode();
+                    resetForm(true);
+                } else {
+                    showToast('&#10060; '+(result.message||'Update failed'), 'error', 8000);
+                }
+            } catch(err){
+                hideSyncOverlay();
+                showToast('&#10060; Network error: '+err.message, 'error', 8000);
+            }
+            return;
+        }
+
         data.action = 'save';
 
         let log = [];
@@ -1391,18 +2248,66 @@
         ['reqPersonName','reqEmpCode','reqDesignation','reqContact','reqMachine','reqPurpose','overallRemarks']
             .forEach(id=> $(id).value = '');
         $('reqDepartment').value = '';
+        $('reqGeneratedBy').value = localStorage.getItem('sarv_pr_generator_v1') || '';
+        $('reqLastDateUsed').value = '';
         $('itemTableBody').innerHTML = '';
         addItemRow();
         $('reqNoField').value = generateReqNo();
+        refreshReqNo();
         $('draftInfo').textContent = keepCounter ? '✅ Last entry saved. Ready for next requirement.' : 'Form cleared.';
         recalcTotals();
+    }
+
+    /* ---------- #4 EDIT REQUIREMENT (1-hour window) ---------- */
+    const SUBMIT_LABEL_DEFAULT = '\u2705 Submit & Sync';
+    function switchToTab(tab){
+        const link = document.querySelector('.nav-link[data-tab="'+tab+'"]');
+        if (link) link.click();
+    }
+    function enterEditMode(d){
+        const m = d.master;
+        EDIT_MODE = m.reqNo;
+        switchToTab('entry');
+        $('reqDate').value         = m.date || todayISO();
+        $('requiredByDate').value  = m.requiredByDate || todayISO();
+        $('priority').value        = m.priority || 'Normal';
+        $('reqPersonName').value   = m.personName || '';
+        $('reqEmpCode').value      = m.empCode || '';
+        $('reqDesignation').value  = m.designation || '';
+        $('reqDepartment').value   = m.department || '';
+        $('reqContact').value      = m.contact || '';
+        $('reqMachine').value      = m.machine || '';
+        $('reqPurpose').value      = m.purpose || '';
+        $('overallRemarks').value  = m.overallRemarks || '';
+        $('reqGeneratedBy').value  = m.generatedBy || localStorage.getItem('sarv_pr_generator_v1') || '';
+        $('reqLastDateUsed').value = m.lastDateUsed || '';
+        $('reqNoField').value      = m.reqNo;
+        $('itemTableBody').innerHTML = '';
+        const items = d.items || [];
+        if (items.length){
+            items.forEach(it=> addItemRow({ itemName:it.itemName, itemDesc:it.itemDesc, make:it.make,
+                category:it.category, machineNo:it.machineNo, qty:it.qtyRequested, uom:it.uom,
+                grossWeight:it.grossWeight, remarks:it.remarks }));
+        } else { addItemRow(); }
+        recalcTotals();
+        $('submitBtn').innerHTML = '\uD83D\uDCBE Update PR';
+        $('editBanner').style.display = 'flex';
+        $('editBannerText').textContent = 'Editing ' + m.reqNo + ' \u2014 ' + (m.editMinutesLeft||0) + ' min left in the 1-hour edit window';
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        showToast('\u270F\uFE0F Edit mode: change details and click <b>Update PR</b>.', 'success', 5000);
+    }
+    function exitEditMode(){
+        EDIT_MODE = null;
+        $('submitBtn').innerHTML = SUBMIT_LABEL_DEFAULT;
+        const eb = $('editBanner'); if (eb) eb.style.display = 'none';
     }
 
     /* ================================================================
        =============== MANAGE & UPDATE TAB FUNCTIONS ==================
        ================================================================ */
 
-    async function loadRequirementsList(){
+    async function loadRequirementsList(collapseAfter){
+        if (collapseAfter === undefined) collapseAfter = true;
         if (!URL_IS_CONFIGURED){
             $('reqListBody').innerHTML = '<tr><td colspan="10" class="empty-state">⚠️ Apps Script URL HTML me configure nahi hai. Setup banner dekho.</td></tr>';
             return;
@@ -1425,6 +2330,14 @@
                 return;
             }
             renderRequirementsList(result.items || []);
+            // #4 start collapsed on tab-open / Reload / filter change (not after an in-detail save)
+            if (collapseAfter){
+                $('detailPanel').style.display = 'none';
+                $('detailEmpty').style.display = '';
+                CURRENT_DETAIL = null;
+                const tb = $('reqListBody');
+                if (tb) tb.querySelectorAll('.req-row.selected').forEach(r => r.classList.remove('selected'));
+            }
         } catch(err){
             hideSyncOverlay();
             showToast('&#10060; '+err.message, 'error', 6000);
@@ -1433,6 +2346,13 @@
 
     function statusBadgeClass(status){
         const s = String(status||'').toLowerCase();
+        if (s.includes('verified'))   return 'badge-received';    // Vendor Verified -> teal/green
+        if (s.includes('gm/ceo') && s.includes('approved')) return 'badge-progress'; // GM/CEO Approved -> amber
+        if (s.includes('approved'))   return 'badge-fulfilled';   // #3 MD Approved -> green
+        if (s.includes('received') && s.includes('partial')) return 'badge-partial';
+        if (s === 'received')         return 'badge-received';
+        if (s.includes('po'))         return 'badge-po';
+        if (s === 'generated')        return 'badge-po';
         if (s.includes('pending'))    return 'badge-pending';
         if (s.includes('progress'))   return 'badge-progress';
         if (s.includes('partial'))    return 'badge-partial';
@@ -1452,18 +2372,21 @@
         const tbody = $('reqListBody');
         $('listCount').textContent = items.length;
 
-        let cP=0,cI=0,cF=0;
+        let cP=0,cI=0,cR=0,cF=0;
         items.forEach(it=>{
             const s = String(it.status||'').toLowerCase();
-            if (s.includes('pending')) cP++;
+            if (s === 'received')      cR++;
+            else if (s.includes('pending')) cP++;
             else if (s.includes('progress')) cI++;
             else if (s.includes('fulfilled')) cF++;
         });
-        $('cntPending').textContent = cP;
+        $('cntPending').textContent  = cP;
         $('cntProgress').textContent = cI;
-        $('cntFulfilled').textContent = cF;
+        $('cntReceived').textContent = cR;
+        $('cntFulfilled').textContent= cF;
         $('pillPending').style.display    = cP ? 'inline-flex' : 'none';
         $('pillProgress').style.display   = cI ? 'inline-flex' : 'none';
+        $('pillReceived').style.display   = cR ? 'inline-flex' : 'none';
         $('pillFulfilled').style.display  = cF ? 'inline-flex' : 'none';
 
         if (!items.length){
@@ -1479,17 +2402,19 @@
                 <td><small>${escapeHtml((it.purpose||'').slice(0,40))}${(it.purpose||'').length>40?'...':''}</small></td>
                 <td style="text-align:center;">${it.totalItems}</td>
                 <td style="text-align:center;">${(it.totalQty||0).toLocaleString('en-IN')}</td>
-                <td style="text-align:center;"><b>${(it.totalIssuedQty||0).toLocaleString('en-IN')}</b></td>
+                <td style="text-align:center;background:#eff6ff;color:#1d4ed8;"><b>${(it.inPoQty||0).toLocaleString('en-IN')}</b></td>
                 <td><span class="badge ${priorityBadgeClass(it.priority)}">${escapeHtml(it.priority||'Normal')}</span></td>
                 <td><span class="badge ${statusBadgeClass(it.status)}">${escapeHtml(it.status||'Pending')}</span></td>
             </tr>
         `).join('');
 
         tbody.querySelectorAll('.req-row').forEach(tr => {
-            tr.addEventListener('click', () => {
+            tr.addEventListener('click', async () => {
                 tbody.querySelectorAll('.req-row').forEach(r => r.classList.remove('selected'));
                 tr.classList.add('selected');
-                loadRequirementDetail(tr.dataset.reqno);
+                await loadRequirementDetail(tr.dataset.reqno);
+                const dp = $('detailPanel');
+                if (dp && dp.style.display !== 'none') dp.scrollIntoView({ behavior: 'smooth', block: 'start' });
             });
         });
     }
@@ -1531,7 +2456,9 @@
             <div class="field"><span class="lbl">Machine / Line</span><span class="val">${escapeHtml(m.machine||'-')}</span></div>
             <div class="field" style="grid-column: span 2;"><span class="lbl">Purpose</span><span class="val">${escapeHtml(m.purpose||'-')}</span></div>
             <div class="field"><span class="lbl">Total Qty / Issued</span><span class="val">${(m.totalQty||0).toLocaleString('en-IN')} / <b style="color:#047857;">${(m.totalIssuedQty||0).toLocaleString('en-IN')}</b></span></div>
-            <div class="field"><span class="lbl">Last Updated</span><span class="val"><small>${escapeHtml(m.lastUpdated||'-')} ${m.updatedBy? 'by '+escapeHtml(m.updatedBy):''}</small></span></div>
+            <div class="field"><span class="lbl">Purchaser Name</span><span class="val">${escapeHtml(m.generatedBy||'-')}</span></div>
+            <div class="field"><span class="lbl">Last Date Used</span><span class="val">${escapeHtml(m.lastDateUsed||'-')}</span></div>
+            <div class="field"><span class="lbl">Last Changed</span><span class="val"><small>${escapeHtml(m.lastUpdatedFull||m.lastUpdated||'-')} ${m.updatedBy? 'by '+escapeHtml(m.updatedBy):''}</small></span></div>
             ${m.overallRemarks ? '<div class="field" style="grid-column: 1 / -1;"><span class="lbl">Overall Remarks</span><span class="val">'+escapeHtml(m.overallRemarks)+'</span></div>':''}
             ${m.closeRemarks ? '<div class="field" style="grid-column: 1 / -1;"><span class="lbl">Close Remarks</span><span class="val" style="color:#b45309;">'+escapeHtml(m.closeRemarks)+'</span></div>':''}
         `;
@@ -1541,7 +2468,7 @@
         const masterClosed = (String(m.status) === 'Closed' || String(m.status) === 'Cancelled');
 
         tbody.innerHTML = items.map(it => `
-            <tr data-srno="${it.srNo}" data-qtyreq="${it.qtyRequested}">
+            <tr data-srno="${it.srNo}" data-qtyreq="${it.qtyRequested}" data-poqty="${it.poQty||0}" data-rcvqty="${it.qtyReceived||0}">
                 <td class="sr-cell">${it.srNo}</td>
                 <td><b>${escapeHtml(it.itemName||'')}</b><br><small style="color:#64748b;">${escapeHtml(it.make||'')}</small></td>
                 <td><small>${escapeHtml(it.itemDesc||'')}</small></td>
@@ -1549,14 +2476,25 @@
                 <td style="text-align:center;">
                     <input type="number" class="table-input col-issued-input col-issued" min="0" max="${it.qtyRequested}" step="any" value="${it.qtyIssued||0}" ${masterClosed?'disabled':''}>
                 </td>
+                <td style="text-align:center;background:#fef2f2;">
+                    <input type="number" class="table-input col-issued-input col-cancelled" min="0" max="${it.qtyRequested}" step="any" value="${it.qtyCancelled||0}" ${masterClosed?'disabled':''} style="background:#fef2f2;color:#b91c1c;font-weight:700;">
+                </td>
+                <td style="text-align:center;background:#dbeafe;color:#1d4ed8;font-weight:700;">${(it.poQty||0).toLocaleString('en-IN')}</td>
+                <td style="text-align:center;font-weight:800;color:#047857;" class="col-avail">${(it.qtyAvailable||0).toLocaleString('en-IN')}</td>
                 <td>${escapeHtml(it.uom||'')}</td>
                 <td>
-                    <select class="table-select col-itemstatus" ${masterClosed?'disabled':''}>
+                    <select class="table-select col-itemstatus" disabled style="background:#f1f5f9;">
                         <option value="Pending"          ${it.itemStatus==='Pending'?'selected':''}>⏳ Pending</option>
+                        <option value="PO Generated"     ${it.itemStatus==='PO Generated'?'selected':''}>🛒 PO Generated</option>
+                        <option value="GM/CEO Approved"  ${it.itemStatus==='GM/CEO Approved'?'selected':''}>🟡 GM/CEO Approved</option>
+                        <option value="MD Approved"      ${it.itemStatus==='MD Approved'?'selected':''}>🟢 MD Approved</option>
+                        <option value="Vendor Verified"  ${it.itemStatus==='Vendor Verified'?'selected':''}>🟩 Vendor Verified</option>
+                        <option value="Received"         ${it.itemStatus==='Received'?'selected':''}>📥 Received</option>
                         <option value="Partially Issued" ${it.itemStatus==='Partially Issued'?'selected':''}>🟡 Partial</option>
                         <option value="Fully Issued"     ${it.itemStatus==='Fully Issued'?'selected':''}>✅ Fully Issued</option>
                         <option value="Cancelled"        ${it.itemStatus==='Cancelled'?'selected':''}>❌ Cancelled</option>
                     </select>
+                    ${it.poNo ? '<small style="color:#1d4ed8;font-weight:700;display:block;margin-top:2px;">PO: '+escapeHtml(it.poNo)+'</small>' : ''}
                 </td>
                 <td><input type="text" class="table-input col-issrem" placeholder="optional" value="${escapeHtml(it.issueRemarks||'')}" ${masterClosed?'disabled':''}></td>
                 <td style="text-align:center;">
@@ -1565,25 +2503,39 @@
             </tr>
         `).join('');
 
-        tbody.querySelectorAll('tr').forEach(tr => {
-            const qtyReq = Number(tr.dataset.qtyreq) || 0;
+        // Auto-recompute Available + Status when Issued or Cancelled change
+        function recomputeRow(tr){
+            const qReq = Number(tr.dataset.qtyreq) || 0;
+            const qPo  = Number(tr.dataset.poqty)  || 0;
+            const qRcv = Number(tr.dataset.rcvqty) || 0;
+            let qIss   = Number(tr.querySelector('.col-issued').value)    || 0;
+            let qCan   = Number(tr.querySelector('.col-cancelled').value) || 0;
+            if (qIss < 0) qIss = 0;
+            if (qCan < 0) qCan = 0;
+            if (qIss + qCan > qReq) {
+                // clamp the most-recently-edited one if over
+                if (tr._lastEdited === 'cancel') { qCan = Math.max(0, qReq - qIss); tr.querySelector('.col-cancelled').value = qCan; }
+                else                              { qIss = Math.max(0, qReq - qCan); tr.querySelector('.col-issued').value    = qIss; }
+            }
+            const avail = Math.max(0, qReq - qIss - qCan - qPo);
+            tr.querySelector('.col-avail').textContent = avail.toLocaleString('en-IN');
+
+            // Compute display status (server is source of truth) - mirrors backend computeItemStatus_
             const statusSel = tr.querySelector('.col-itemstatus');
+            let newSt = 'Pending';
+            if (qReq > 0 && qCan >= qReq)                                              newSt = 'Cancelled';
+            else if (qReq > 0 && qIss + qCan >= qReq)                                  newSt = (qIss === 0 ? 'Cancelled' : 'Fully Issued');
+            else if (qIss > 0)                                                         newSt = 'Partially Issued';
+            else if (qReq > 0 && qRcv > 0 && qRcv + qCan >= qReq)                      newSt = 'Received';
+            else if (qPo > 0)                                                          newSt = 'PO Generated';
+            statusSel.value = newSt;
+        }
+
+        tbody.querySelectorAll('tr').forEach(tr => {
             const issuedInp = tr.querySelector('.col-issued');
-            statusSel.addEventListener('change', () => {
-                const st = statusSel.value;
-                if (st === 'Fully Issued') issuedInp.value = qtyReq;
-                else if (st === 'Pending' || st === 'Cancelled') issuedInp.value = 0;
-                else if (st === 'Partially Issued') {
-                    const cur = Number(issuedInp.value) || 0;
-                    if (cur <= 0 || cur >= qtyReq) issuedInp.value = Math.max(1, Math.floor(qtyReq/2));
-                }
-            });
-            issuedInp.addEventListener('input', () => {
-                const v = Number(issuedInp.value) || 0;
-                if (v <= 0)            statusSel.value = 'Pending';
-                else if (v >= qtyReq)  { statusSel.value = 'Fully Issued'; issuedInp.value = qtyReq; }
-                else                   statusSel.value = 'Partially Issued';
-            });
+            const cancelInp = tr.querySelector('.col-cancelled');
+            issuedInp.addEventListener('input', () => { tr._lastEdited = 'issue';  recomputeRow(tr); });
+            cancelInp.addEventListener('input', () => { tr._lastEdited = 'cancel'; recomputeRow(tr); });
         });
 
         $('updatedByField').value = localStorage.getItem(UPDATED_BY_KEY) || '';
@@ -1596,6 +2548,25 @@
         $('openPdfBtn').disabled  = !hasPdf;
         $('openPdfBtn').title     = hasPdf ? 'Open PDF for printing' : 'No PDF available - click Regen PDF';
         $('regenPdfBtn').disabled = false;
+
+        // #6 PR editing option (always shown; live for 1 hour on Pending, no-PO PRs)
+        const editBtn = $('editReqBtn');
+        if (editBtn){
+            editBtn.style.display = 'inline-flex';
+            if (m.editable){
+                editBtn.disabled = false;
+                editBtn.style.opacity = '';
+                editBtn.style.cursor = 'pointer';
+                editBtn.title = 'Editable for ' + (m.editMinutesLeft||0) + ' more minute(s)';
+                editBtn.innerHTML = '\u270F\uFE0F Edit (' + (m.editMinutesLeft||0) + 'm left)';
+            } else {
+                editBtn.disabled = true;
+                editBtn.style.opacity = '0.45';
+                editBtn.style.cursor = 'not-allowed';
+                editBtn.title = 'Edit window closed \u2014 only Pending PRs with no PO, within 1 hour of creation, can be edited';
+                editBtn.innerHTML = '\u270F\uFE0F Edit (1h)';
+            }
+        }
     }
 
     async function openCurrentPdf(){
@@ -1639,19 +2610,20 @@
 
         const updates = [];
         document.querySelectorAll('#detailItemsBody tr').forEach(tr => {
-            const srNo      = Number(tr.dataset.srno);
-            const newStatus = tr.querySelector('.col-itemstatus').value;
-            const newIssued = Number(tr.querySelector('.col-issued').value) || 0;
-            const newRem    = tr.querySelector('.col-issrem').value.trim();
+            const srNo         = Number(tr.dataset.srno);
+            const newStatus    = tr.querySelector('.col-itemstatus').value;
+            const newIssued    = Number(tr.querySelector('.col-issued').value)    || 0;
+            const newCancelled = Number(tr.querySelector('.col-cancelled').value) || 0;
+            const newRem       = tr.querySelector('.col-issrem').value.trim();
 
             const original = CURRENT_DETAIL.items.find(x => x.srNo === srNo);
             if (!original) return;
             const changed =
-                (original.itemStatus   !== newStatus) ||
-                (Number(original.qtyIssued) !== newIssued) ||
-                ((original.issueRemarks||'') !== newRem);
+                (Number(original.qtyIssued)    !== newIssued) ||
+                (Number(original.qtyCancelled) !== newCancelled) ||
+                ((original.issueRemarks||'')   !== newRem);
             if (changed){
-                updates.push({ srNo, newStatus, qtyIssued: newIssued, issueRemarks: newRem });
+                updates.push({ srNo, newStatus, qtyIssued: newIssued, qtyCancelled: newCancelled, issueRemarks: newRem });
             }
         });
 
@@ -1677,7 +2649,7 @@
                     result.status === 'OK' ? 'success' : 'warn', 5500
                 );
                 await loadRequirementDetail(CURRENT_DETAIL.master.reqNo);
-                await loadRequirementsList();
+                await loadRequirementsList(false);
             } else {
                 showToast('&#10060; '+(result.message||'Update failed'), 'error', 6000);
             }
@@ -1734,7 +2706,7 @@
             if (result.status === 'OK'){
                 showToast('&#9989; Marked '+newStatus, 'success', 4500);
                 await loadRequirementDetail(CURRENT_DETAIL.master.reqNo);
-                await loadRequirementsList();
+                await loadRequirementsList(false);
             } else {
                 showToast('&#10060; '+(result.message||'Action failed'), 'error', 6000);
             }
@@ -1744,21 +2716,1485 @@
         }
     }
 
+    /* ================================================================
+       =============== PURCHASE ORDER (PO) TAB FUNCTIONS ==============
+       ================================================================ */
+
+    let PO_PENDING_CACHE = [];   // last fetched pending items
+    let PO_SELECTED = new Map(); // key: reqNo|srNo -> item
+    let PO_CURRENT_BUILD = [];   // items currently in PO build modal
+
+    function poKey(it){ return it.reqNo + '|' + it.srNo; }
+    function fmtMoney(n){
+        const x = Number(n) || 0;
+        return x.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+
+    function showPoSubPanel(which){
+        $('poPendingPanel').style.display = (which === 'pending') ? 'block' : 'none';
+        $('poListPanel').style.display    = (which === 'list')    ? 'block' : 'none';
+        if (which === 'pending') {
+            $('poSubPendingBtn').className = 'btn btn-primary btn-sm';
+            $('poSubListBtn').className    = 'btn btn-neutral btn-sm';
+            loadPoPending();
+        } else {
+            $('poSubPendingBtn').className = 'btn btn-neutral btn-sm';
+            $('poSubListBtn').className    = 'btn btn-primary btn-sm';
+            loadPoList();
+        }
+    }
+
+    async function loadPoPending(){
+        if (!URL_IS_CONFIGURED){
+            $('poPendingBody').innerHTML = '<tr><td colspan="15" class="empty-state">⚠️ Apps Script URL configured nahi hai.</td></tr>';
+            return;
+        }
+        showSyncOverlay('Loading pending items...');
+        try {
+            const result = await syncToCloud({
+                action: 'listPendingForPO',
+                search:    $('poFilterSearch').value.trim(),
+                department:$('poFilterDept').value,
+                priority:  $('poFilterPriority').value,
+                reqNo:     $('poFilterReqNo').value.trim()
+            });
+            hideSyncOverlay();
+            if (result.status !== 'OK'){
+                showToast('&#10060; '+(result.message||'Load failed'), 'error', 6000);
+                $('poPendingBody').innerHTML = '';
+                return;
+            }
+            PO_PENDING_CACHE = result.items || [];
+            renderPoPending();
+        } catch(err){
+            hideSyncOverlay();
+            showToast('&#10060; '+err.message, 'error', 6000);
+        }
+    }
+
+    function renderPoPending(){
+        const tbody = $('poPendingBody');
+        const items = PO_PENDING_CACHE;
+        $('poPendingCount').textContent = items.length;
+        if (!items.length){
+            tbody.innerHTML = '<tr><td colspan="15" class="empty-state"><div class="ico">📦</div>No items with available qty for PO</td></tr>';
+            recalcPoSelection();
+            return;
+        }
+        tbody.innerHTML = items.map(it => {
+            const k = poKey(it);
+            const checked = PO_SELECTED.has(k) ? 'checked' : '';
+            const sel = PO_SELECTED.has(k) ? 'selected' : '';
+            const z = (n) => n === 0 ? '<small style="color:#94a3b8;">0</small>' : (n||0).toLocaleString('en-IN');
+            return `
+            <tr class="po-row ${sel}" data-key="${escapeHtml(k)}">
+                <td style="text-align:center;"><input type="checkbox" class="po-check" ${checked}></td>
+                <td><b style="color:#0284c7;">${escapeHtml(it.reqNo)}</b></td>
+                <td style="text-align:center;">${it.srNo}</td>
+                <td class="po-itemcell"><b>${escapeHtml(it.itemName||'')}</b></td>
+                <td class="po-itemcell"><small style="color:#64748b;">${escapeHtml((it.itemDesc||'').slice(0,40))}</small></td>
+                <td>${escapeHtml(it.make||'')}</td>
+                <td>${escapeHtml(it.department||'')}</td>
+                <td style="text-align:center;">${z(it.qtyRequested)}</td>
+                <td style="text-align:center;">${z(it.qtyIssued)}</td>
+                <td style="text-align:center;">${z(it.qtyCancelled)}</td>
+                <td style="text-align:center;">${z(it.qtyPoExisting)}</td>
+                <td style="text-align:center;background:#dbeafe;color:#1d4ed8;font-weight:800;">${(it.qtyAvailable||0).toLocaleString('en-IN')}</td>
+                <td>${escapeHtml(it.uom||'')}</td>
+                <td><span class="badge ${statusBadgeClass(it.itemStatus||'Pending')}" style="font-size:9px;">${escapeHtml(it.itemStatus||'Pending')}</span></td>
+                <td><span class="badge ${priorityBadgeClass(it.priority)}">${escapeHtml(it.priority||'Normal')}</span></td>
+            </tr>`;
+        }).join('');
+
+        tbody.querySelectorAll('.po-row').forEach(tr => {
+            const cb = tr.querySelector('.po-check');
+            const k = tr.dataset.key;
+            const it = items.find(x => poKey(x) === k);
+            cb.addEventListener('change', (e) => {
+                e.stopPropagation();
+                if (cb.checked) { PO_SELECTED.set(k, it); tr.classList.add('selected'); }
+                else            { PO_SELECTED.delete(k);  tr.classList.remove('selected'); }
+                recalcPoSelection();
+            });
+            tr.addEventListener('click', (e) => {
+                if (e.target.tagName === 'INPUT') return;
+                cb.checked = !cb.checked;
+                cb.dispatchEvent(new Event('change'));
+            });
+        });
+        recalcPoSelection();
+    }
+
+    function recalcPoSelection(){
+        const n = PO_SELECTED.size;
+        let q = 0;
+        PO_SELECTED.forEach(it => q += (Number(it.qtyAvailable) || 0));
+        $('poSelCount').textContent  = n;
+        $('poSelCount2').textContent = n;
+        $('poSelQty').textContent    = q.toLocaleString('en-IN');
+        $('poBuildBtn').disabled = (n === 0);
+    }
+
+    function clearPoSelection(){
+        PO_SELECTED.clear();
+        document.querySelectorAll('#poPendingBody .po-check').forEach(c => c.checked = false);
+        document.querySelectorAll('#poPendingBody .po-row').forEach(r => r.classList.remove('selected'));
+        $('poSelectAll').checked = false;
+        recalcPoSelection();
+    }
+
+    /* ---- #13 Vendor auto-fill (last used address / contact / mail) ---- */
+    let VENDOR_CACHE = [];
+    async function loadVendorDatalist(){
+        if (!URL_IS_CONFIGURED) return;
+        try {
+            const r = await syncToCloud({ action: 'listVendors' });
+            if (r && r.status === 'OK' && Array.isArray(r.vendors)){
+                VENDOR_CACHE = r.vendors;
+                $('vendorDatalist').innerHTML = VENDOR_CACHE
+                    .map(v => '<option value="'+escapeHtml(v.vendorName)+'"></option>').join('');
+            }
+        } catch(e){}
+    }
+    function applyVendorAutofill(){
+        const name = $('poVendorField').value.trim().toLowerCase();
+        if (!name) return;
+        const v = VENDOR_CACHE.find(x => String(x.vendorName||'').trim().toLowerCase() === name);
+        if (!v) return;
+        // Only fill empty fields so manual edits are never overwritten
+        if (!$('poVendorAddressField').value.trim()) $('poVendorAddressField').value = v.vendorAddress || '';
+        if (!$('poVendorContactField').value.trim()) $('poVendorContactField').value = v.vendorContact || '';
+        if (!$('poVendorMailField').value.trim())    $('poVendorMailField').value    = v.vendorMail || '';
+        if (!$('poLocationContactField').value.trim() && v.locationContact) $('poLocationContactField').value = v.locationContact;
+        showToast('\u2139\uFE0F Auto-filled details for <b>'+escapeHtml(v.vendorName)+'</b> from last PO.', 'success', 3500);
+    }
+
+    async function openPoBuildModal(){
+        if (PO_SELECTED.size === 0) return;
+        PO_CURRENT_BUILD = Array.from(PO_SELECTED.values());
+
+        // Fetch next PO No from server (server is authoritative; no client-side fallback)
+        let poNo = '';
+        try {
+            const r = await syncToCloud({ action: 'nextPONo' });
+            if (r && r.status === 'OK') poNo = r.poNo;
+        } catch(e){}
+        // If fetch failed, poNo stays '' — server will assign the correct serial on save
+
+        $('poNoField').value          = poNo;
+        $('poDateField').value        = todayISO();
+        $('poDeliveryField').value    = '';
+        $('poCreatedByField').value   = localStorage.getItem(UPDATED_BY_KEY) || '';
+        $('poVendorField').value      = '';
+        $('poVendorMailField').value  = '';
+        $('poVendorContactField').value = '';
+        $('poVendorAddressField').value = '';
+        $('poLocationContactField').value = '';
+        $('poPaymentTermsField').value  = 'Payment terms 90 days after receipt of bill';
+        $('poGstPctField').value        = 18;
+        $('poFreightField').value       = 0;
+        $('poOtherLabelField').value    = 'Labour Other Exp.';
+        $('poOtherExpField').value      = 0;
+        $('poNotesField').value         = '';
+        loadVendorDatalist();   // #13
+
+        // Store Incharge signature canvas - reset
+        const now = new Date();
+        $('poStoreSignTimeField').textContent =
+            'Sign Time: ' + pad(now.getDate()) + '/' + pad(now.getMonth()+1) + '/' + now.getFullYear() + ' ' +
+            pad(now.getHours()) + ':' + pad(now.getMinutes()) + ':' + pad(now.getSeconds());
+        renderPoBuildItems();
+        recalcPoBuildTotals();
+        $('poBuildModal').classList.add('active');
+        // Canvas must be initialized AFTER it becomes visible (size measurements)
+        setTimeout(() => { initStoreSignCanvas(); clearStoreSignCanvas(); }, 50);
+    }
+
+    /* ---- Store Incharge signature canvas ---- */
+    let STORE_SIG_DIRTY = false;
+    function initStoreSignCanvas(){
+        const c = $('poStoreSignCanvas');
+        if (!c || c._init) return;
+        c._init = true;
+        const ctx = c.getContext('2d');
+        ctx.lineWidth = 2.2; ctx.lineCap = 'round'; ctx.strokeStyle = '#0f172a';
+        let drawing = false;
+        function pos(e){
+            const r = c.getBoundingClientRect();
+            const t = e.touches ? e.touches[0] : e;
+            return { x: (t.clientX - r.left) * (c.width / r.width),
+                     y: (t.clientY - r.top)  * (c.height / r.height) };
+        }
+        function start(e){ e.preventDefault(); drawing = true; const p = pos(e); ctx.beginPath(); ctx.moveTo(p.x, p.y); }
+        function move(e){ if (!drawing) return; e.preventDefault(); const p = pos(e); ctx.lineTo(p.x, p.y); ctx.stroke(); STORE_SIG_DIRTY = true; }
+        function end(){ drawing = false; }
+        c.addEventListener('mousedown',  start);
+        c.addEventListener('mousemove',  move);
+        c.addEventListener('mouseup',    end);
+        c.addEventListener('mouseleave', end);
+        c.addEventListener('touchstart', start, { passive: false });
+        c.addEventListener('touchmove',  move,  { passive: false });
+        c.addEventListener('touchend',   end);
+    }
+    function clearStoreSignCanvas(){
+        const c = $('poStoreSignCanvas');
+        if (!c) return;
+        c.getContext('2d').clearRect(0, 0, c.width, c.height);
+        STORE_SIG_DIRTY = false;
+    }
+    function getStoreSignBase64(){
+        const c = $('poStoreSignCanvas');
+        if (!c || !STORE_SIG_DIRTY) return '';
+        return c.toDataURL('image/png');
+    }
+
+    // ── PO Attachment Images ──────────────────────────────────────────────
+    const PO_ATTACH_MAX = 5;
+    const PO_ATTACH_MAX_SIZE = 2 * 1024 * 1024; // 2 MB per image
+    let poAttachFiles = []; // Array of { name, type, dataUrl }
+
+    function initPoAttachUpload(){
+        const inp = $('poAttachFiles');
+        if (!inp) return;
+        inp.addEventListener('change', handlePoAttachSelect);
+        // Drag & drop on the preview area
+        const preview = $('poAttachPreview');
+        preview.addEventListener('dragover', e => { e.preventDefault(); preview.style.background='#dbeafe'; });
+        preview.addEventListener('dragleave', () => { preview.style.background=''; });
+        preview.addEventListener('drop', e => {
+            e.preventDefault(); preview.style.background='';
+            if (e.dataTransfer.files.length) addPoAttachFiles(e.dataTransfer.files);
+        });
+    }
+
+    function handlePoAttachSelect(e){
+        if (e.target.files.length) addPoAttachFiles(e.target.files);
+        e.target.value = ''; // reset so same file can be re-selected
+    }
+
+    function addPoAttachFiles(fileList){
+        const remaining = PO_ATTACH_MAX - poAttachFiles.length;
+        if (remaining <= 0){ showToast('⚠️ Maximum ' + PO_ATTACH_MAX + ' images allowed.', 'warn', 3000); return; }
+        const toAdd = Array.from(fileList).slice(0, remaining);
+        let oversized = 0;
+        let badType = 0;
+
+        toAdd.forEach(file => {
+            if (!file.type.match(/^image\/(jpeg|png|webp)$/)) { badType++; return; }
+            if (file.size > PO_ATTACH_MAX_SIZE) { oversized++; return; }
+            const reader = new FileReader();
+            reader.onload = (ev) => {
+                poAttachFiles.push({ name: file.name, type: file.type, dataUrl: ev.target.result });
+                renderPoAttachPreview();
+            };
+            reader.readAsDataURL(file);
+        });
+        if (oversized) showToast('⚠️ ' + oversized + ' image(s) exceeded 2 MB limit — skipped.', 'warn', 4000);
+        if (badType) showToast('⚠️ ' + badType + ' file(s) are not JPG/PNG/WEBP — skipped.', 'warn', 4000);
+    }
+
+    function renderPoAttachPreview(){
+        const box = $('poAttachPreview');
+        if (!poAttachFiles.length) { box.innerHTML = '<span style="color:#94a3b8;font-size:11px;">No images attached</span>'; return; }
+        box.innerHTML = poAttachFiles.map((f, i) =>
+            '<div style="position:relative;width:80px;height:80px;border-radius:6px;overflow:hidden;border:1px solid #cbd5e1;background:#f8fafc;">' +
+                '<img src="' + f.dataUrl + '" style="width:100%;height:100%;object-fit:cover;">' +
+                '<button type="button" onclick="window._removePoAttach(' + i + ')" style="position:absolute;top:2px;right:2px;background:#ef4444;color:#fff;border:none;border-radius:50%;width:18px;height:18px;font-size:10px;cursor:pointer;line-height:18px;">✕</button>' +
+                '<div style="position:absolute;bottom:0;left:0;right:0;background:rgba(0,0,0,0.6);color:#fff;font-size:8px;padding:1px 3px;text-overflow:ellipsis;overflow:hidden;white-space:nowrap;">' + (f.name.length > 12 ? f.name.slice(0,12)+'…' : f.name) + '</div>' +
+            '</div>'
+        ).join('');
+    }
+    window._removePoAttach = function(idx){
+        poAttachFiles.splice(idx, 1);
+        renderPoAttachPreview();
+    };
+
+    function resetPoAttachments(){
+        poAttachFiles = [];
+        if ($('poAttachFiles')) $('poAttachFiles').value = '';
+        renderPoAttachPreview();
+    }
+
+    function closePoBuildModal(){
+        $('poBuildModal').classList.remove('active');
+        resetPoAttachments();
+    }
+
+    function renderPoBuildItems(){
+        const tbody = $('poBuildBody');
+        tbody.innerHTML = PO_CURRENT_BUILD.map((it,i) => `
+            <tr data-idx="${i}">
+                <td style="text-align:center;font-weight:700;">${i+1}</td>
+                <td><b style="color:#0284c7;font-size:11px;">${escapeHtml(it.reqNo)}</b><br><small>Sr ${it.srNo}</small></td>
+                <td><b>${escapeHtml(it.itemName||'')}</b></td>
+                <td><small style="color:#64748b;">${escapeHtml(it.itemDesc||'')}</small></td>
+                <td>${escapeHtml(it.make||'')}</td>
+                <td style="text-align:center;"><b>${(it.qtyAvailable||0).toLocaleString('en-IN')}</b></td>
+                <td><input type="number" class="po-itemqty" min="0" max="${it.qtyAvailable||0}" step="any" value="${it.qtyAvailable||0}" style="background:#dbeafe;font-weight:700;"></td>
+                <td><input type="number" class="po-cancelqty" min="0" max="${it.qtyAvailable||0}" step="any" value="0" style="background:#fef2f2;color:#b91c1c;font-weight:700;"></td>
+                <td>${escapeHtml(it.uom||'')}</td>
+                <td><input type="number" class="po-grossweight" min="0" step="any" value="${(it.grossWeight!=null&&it.grossWeight!=='')?it.grossWeight:''}" placeholder="kg" style="background:#fef9c3;"></td>
+                <td><select class="po-billbasis" style="background:#e0f2fe;font-weight:600;font-size:11px;padding:4px;border:1px solid #7dd3fc;border-radius:4px;">
+                    <option value="Qty" selected>Qty</option>
+                    <option value="Weight">Weight</option>
+                </select></td>
+                <td><input type="number" class="po-unitprice" min="0" step="0.01" value="0" placeholder="0.00"></td>
+                <td class="po-total" data-total="0">0.00</td>
+            </tr>
+        `).join('');
+
+        tbody.querySelectorAll('tr').forEach(tr => {
+            const idx = Number(tr.dataset.idx);
+            const it = PO_CURRENT_BUILD[idx];
+            const qtyInp = tr.querySelector('.po-itemqty');
+            const cancelInp = tr.querySelector('.po-cancelqty');
+            const upInp  = tr.querySelector('.po-unitprice');
+            const gwInp  = tr.querySelector('.po-grossweight');
+            const bbSel  = tr.querySelector('.po-billbasis');
+            const tot    = tr.querySelector('.po-total');
+            const recalc = () => {
+                const avail = Number(it.qtyAvailable) || 0;
+                let qty = Number(qtyInp.value) || 0;
+                if (qty < 0) qty = 0;
+                if (qty > avail) { qty = avail; qtyInp.value = avail; }
+                let cancel = Number(cancelInp.value) || 0;
+                if (cancel < 0) cancel = 0;
+                if (qty + cancel > avail) { cancel = Math.max(0, avail - qty); cancelInp.value = cancel; }
+                const up = Number(upInp.value) || 0;
+                const basis = bbSel.value;
+                // #5: Bill Basis — Weight uses grossWeight, Qty uses qty
+                let total;
+                if (basis === 'Weight') {
+                    const gw = Number(gwInp.value) || 0;
+                    total = up * gw;
+                } else {
+                    total = up * qty;
+                }
+                tot.textContent = fmtMoney(total);
+                tot.dataset.total = total;
+                tr.dataset.poqty = qty;
+                tr.dataset.cancelqty = cancel;
+                recalcPoBuildTotals();
+            };
+            qtyInp.addEventListener('input', recalc);
+            cancelInp.addEventListener('input', recalc);
+            upInp.addEventListener('input', recalc);
+            gwInp.addEventListener('input', recalc);
+            bbSel.addEventListener('change', recalc);
+            tr.dataset.poqty = (Number(qtyInp.value) || 0);
+            tr.dataset.cancelqty = 0;
+        });
+    }
+
+    function recalcPoBuildTotals(){
+        let subtotal = 0;
+        document.querySelectorAll('#poBuildBody tr').forEach(tr => {
+            subtotal += Number(tr.querySelector('.po-total').dataset.total) || 0;
+        });
+        const gstPct = Number($('poGstPctField').value) || 0;
+        const freight = Number($('poFreightField').value) || 0;
+        const other   = Number($('poOtherExpField').value) || 0;
+        const taxable = subtotal + freight + other;     // #20 freight + other are taxable
+        const gstAmt  = taxable * gstPct / 100;
+        const grand   = taxable + gstAmt;
+
+        $('poSubtotalView').textContent = fmtMoney(subtotal);
+        $('poGstAmtView').textContent   = fmtMoney(gstAmt);
+        $('poFreightView').textContent  = fmtMoney(freight);
+        $('poOtherView').textContent    = fmtMoney(other);
+        $('poOtherViewLbl').textContent = $('poOtherLabelField').value || 'Other';
+        $('poGrandTotalView').textContent = fmtMoney(grand);
+    }
+
+    // Tracks whether user already acknowledged the zero-price warning once.
+    let _poBuildZeroPriceConfirmed = false;
+
+    async function confirmPoBuild(){
+        const vendor = $('poVendorField').value.trim();
+        if (!vendor){ showToast('&#9888; Vendor (M/s) required.', 'warn', 4000); $('poVendorField').focus(); return; }
+        const poDate = $('poDateField').value;
+        if (!poDate){ showToast('&#9888; PO Date required.', 'warn', 4000); $('poDateField').focus(); return; }
+        const storeInchargeSign = getStoreSignBase64();
+        if (!storeInchargeSign){
+            showToast('&#9888; Please draw your Store Incharge signature in the box.', 'warn', 5000);
+            $('poStoreSignCanvas').scrollIntoView({ behavior: 'smooth', block: 'center' });
+            return;
+        }
+
+        const items = [];
+        let allPriced = true, allHaveQty = true;
+        let weightMissingGw = false;
+        document.querySelectorAll('#poBuildBody tr').forEach(tr => {
+            const idx = Number(tr.dataset.idx);
+            const it = PO_CURRENT_BUILD[idx];
+            const up    = Number(tr.querySelector('.po-unitprice').value) || 0;
+            const poQty = Number(tr.querySelector('.po-itemqty').value)  || 0;
+            const cancelQty = Number(tr.querySelector('.po-cancelqty').value) || 0;
+            const billBasis = tr.querySelector('.po-billbasis').value || 'Qty';
+            const gwInp = tr.querySelector('.po-grossweight');
+            let grossWeight = null;
+            if (gwInp && gwInp.value !== '') {
+                const v = parseFloat(gwInp.value);
+                if (!isNaN(v)) grossWeight = v;
+            }
+            // #5: Block PO if Bill Basis=Weight but Gross Weight is blank/0
+            if (billBasis === 'Weight' && (!grossWeight || grossWeight <= 0)) {
+                weightMissingGw = true;
+            }
+            if (up <= 0)    allPriced = false;
+            if (poQty <= 0) allHaveQty = false;
+            items.push({ reqNo: it.reqNo, srNo: it.srNo, unitPrice: up, poQty: poQty, cancelQty: cancelQty, grossWeight: grossWeight, billBasis: billBasis });
+        });
+        if (weightMissingGw){
+            showToast('&#10060; Bill Basis "Weight" selected but Gross Weight is blank/0. Fill Gross Weight for all Weight-basis items.', 'error', 7000);
+            return;
+        }
+        if (!allHaveQty){
+            showToast('&#9888; One or more items have PO Qty = 0. Set qty before generating.', 'warn', 5000);
+            return;
+        }
+        if (!allPriced && !_poBuildZeroPriceConfirmed){
+            _poBuildZeroPriceConfirmed = true;
+            showToast('&#9888; Some items have Unit Price = 0. Click <b>Generate PO</b> again to confirm and proceed with zero prices.', 'warn', 7000);
+            return;
+        }
+        // Reset zero-price guard for next PO.
+        _poBuildZeroPriceConfirmed = false;
+
+        // Prevent double-submit: disable button for the duration of the async call.
+        const confirmBtn = $('poBuildConfirmBtn');
+        if (confirmBtn) { confirmBtn.disabled = true; confirmBtn.textContent = 'Generating…'; }
+
+        const createdBy = $('poCreatedByField').value.trim();
+        if (createdBy) localStorage.setItem(UPDATED_BY_KEY, createdBy);
+
+        const payload = {
+            action: 'generatePO',
+            poNo:           $('poNoField').value.trim(),
+            poDate:         poDate,
+            deliveryDate:   $('poDeliveryField').value,
+            vendorName:     vendor,
+            vendorMail:     $('poVendorMailField').value.trim(),
+            vendorAddress:  $('poVendorAddressField').value.trim(),
+            vendorContact:  $('poVendorContactField').value.trim(),
+            locationContact: $('poLocationContactField').value.trim(),
+            paymentTerms:   $('poPaymentTermsField').value.trim(),
+            gstPercent:     Number($('poGstPctField').value) || 0,
+            freight:        Number($('poFreightField').value) || 0,
+            otherExpense:   Number($('poOtherExpField').value) || 0,
+            otherExpenseLabel: $('poOtherLabelField').value.trim() || 'Labour Other Exp.',
+            importantNotes: $('poNotesField').value.trim(),
+            createdBy:           createdBy,
+            storeInchargeSign:   storeInchargeSign,
+            storeComment:        $('poStoreCommentField') ? $('poStoreCommentField').value.trim() : '',
+            items:               items,
+            // Attachment images — base64 data URLs for PDF next page
+            attachmentImages:    poAttachFiles.map(f => ({ name: f.name, type: f.type, dataUrl: f.dataUrl }))
+        };
+
+        showSyncOverlay('Generating PO + PDF…');
+        try {
+            const result = await syncToCloud(payload);
+            hideSyncOverlay();
+            if (result.status === 'OK'){
+                closePoBuildModal();
+                const pdfMsg = result.pdfUrl
+                    ? ' &middot; <a href="'+result.pdfUrl+'" target="_blank" style="color:#7dd3fc;text-decoration:underline;font-weight:800;">📄 Open PO PDF</a>'
+                    : '';
+                const emailMsg = result.approvalEmailSent
+                    ? '<br><small style="color:#7dd3fc;">✉️ Approval emails sent to GM/CEO and MD</small>'
+                    : '<br><small style="color:#fbbf24;">&#9888; Approval email failed - check Apps Script logs</small>';
+                showToast('&#9989; <b>'+result.poNo+'</b> generated! Grand Total: <b>₹'+fmtMoney(result.grandTotal)+'</b>'+pdfMsg+emailMsg, 'success', 12000);
+                if (result.pdfUrl) openPdfForPrint(result.pdfUrl, result.poNo);
+                clearPoSelection();
+                loadPoPending();
+            } else if (result.status === 'DUPLICATE'){
+                showToast('&#9888; '+result.message, 'warn', 7000);
+                if (confirmBtn) { confirmBtn.disabled = false; confirmBtn.textContent = 'Generate PO'; }
+            } else {
+                showToast('&#10060; '+(result.message||'PO generation failed'), 'error', 8000);
+                if (confirmBtn) { confirmBtn.disabled = false; confirmBtn.textContent = 'Generate PO'; }
+            }
+        } catch(err){
+            hideSyncOverlay();
+            showToast('&#10060; '+err.message, 'error', 8000);
+            if (confirmBtn) { confirmBtn.disabled = false; confirmBtn.textContent = 'Generate PO'; }
+        }
+    }
+
+    /* ---- PO List sub-panel ---- */
+    async function loadPoList(){
+        if (!URL_IS_CONFIGURED){
+            $('poListBody').innerHTML = '<tr><td colspan="12" class="empty-state">⚠️ URL not configured.</td></tr>';
+            return;
+        }
+        showSyncOverlay('Loading POs...');
+        try {
+            const result = await syncToCloud({
+                action: 'listPOs',
+                search: $('poListSearch').value.trim(),
+                status: $('poListStatus').value
+            });
+            hideSyncOverlay();
+            if (result.status !== 'OK'){
+                showToast('&#10060; '+(result.message||'Load failed'), 'error', 6000);
+                return;
+            }
+            renderPoList(result.items || []);
+        } catch(err){
+            hideSyncOverlay();
+            showToast('&#10060; '+err.message, 'error', 6000);
+        }
+    }
+
+    /* ---------- #6 PO EDIT MODAL (1-hour window, Generated POs only) ---------- */
+    let PO_EDIT_CURRENT = null;
+
+    async function openPoEditModal(poNo){
+        showSyncOverlay('Loading PO...');
+        try {
+            const result = await syncToCloud({ action: 'getPODetail', poNo: poNo });
+            hideSyncOverlay();
+            if (result.status !== 'OK'){
+                showToast('&#10060; '+(result.message||'Could not load PO'), 'error', 6000);
+                return;
+            }
+            const m = result.master, items = result.items || [];
+            if (!m.editable){
+                showToast('&#9888; This PO is no longer editable (status changed or 1-hour window expired).', 'warn', 6000);
+                return;
+            }
+            PO_EDIT_CURRENT = { poNo: m.poNo, items: items };
+
+            $('poEditNoLabel').textContent = m.poNo;
+            $('poEditWindowLabel').textContent = '⏳ Editable for ' + (m.editMinutesLeft||0) + ' more minute(s) — only while status is "Generated" and no approvals have been signed.';
+            $('poEditVendorName').value    = m.vendorName || '';
+            $('poEditVendorMail').value    = m.vendorMail || '';
+            $('poEditVendorAddress').value = m.vendorAddress || '';
+            $('poEditVendorContact').value = m.vendorContact || '';
+            $('poEditDeliveryDate').value  = m.deliveryDate || '';
+            $('poEditPaymentTerms').value  = m.paymentTerms || 'Payment terms 90 days after receipt of bill';
+            $('poEditGstPct').value        = m.gstPercent != null ? m.gstPercent : 18;
+            $('poEditLocationContact').value = m.locationContact || '';
+            $('poEditFreight').value       = m.freight || 0;
+            $('poEditOtherLabel').value    = m.otherExpenseLabel || 'Labour Other Exp.';
+            $('poEditOtherExp').value      = m.otherExpense || 0;
+            $('poEditNotes').value         = m.importantNotes || '';
+
+            $('poEditItemsBody').innerHTML = items.map((it,i) => `
+                <tr data-srno="${it.srNo}">
+                    <td style="text-align:center;">${i+1}</td>
+                    <td><b>${escapeHtml(it.itemName||'')}</b><br><small style="color:#64748b;">${escapeHtml(it.itemDesc||'')}</small></td>
+                    <td style="text-align:center;">${(it.qty||0).toLocaleString('en-IN')}</td>
+                    <td style="text-align:center;">${escapeHtml(it.uom||'')}</td>
+                    <td><input type="number" class="po-edit-unitprice" min="0" step="0.01" value="${it.unitPrice||0}"></td>
+                    <td class="po-edit-total" style="text-align:right;font-weight:700;" data-total="${it.total||0}">${fmtMoney(it.total||0)}</td>
+                </tr>
+            `).join('');
+
+            $('poEditItemsBody').querySelectorAll('.po-edit-unitprice').forEach((inp,i) => {
+                inp.addEventListener('input', () => {
+                    const up = Number(inp.value) || 0;
+                    const qty = Number(items[i].qty) || 0;
+                    const tot = inp.closest('tr').querySelector('.po-edit-total');
+                    tot.dataset.total = up * qty;
+                    tot.textContent = fmtMoney(up * qty);
+                    recalcPoEditTotal();
+                });
+            });
+
+            recalcPoEditTotal();
+            $('poEditModal').classList.add('active');
+        } catch(err){
+            hideSyncOverlay();
+            showToast('&#10060; '+err.message, 'error', 6000);
+        }
+    }
+
+    function closePoEditModal(){
+        $('poEditModal').classList.remove('active');
+        PO_EDIT_CURRENT = null;
+    }
+
+    function recalcPoEditTotal(){
+        let subtotal = 0;
+        $('poEditItemsBody').querySelectorAll('.po-edit-total').forEach(td => {
+            subtotal += Number(td.dataset.total) || 0;
+        });
+        const freight = Number($('poEditFreight').value) || 0;
+        const other   = Number($('poEditOtherExp').value) || 0;
+        const gstPct  = Number($('poEditGstPct').value) || 0;
+        const taxable = subtotal + freight + other;
+        const grand   = taxable + (taxable * gstPct / 100);
+        $('poEditGrandTotalView').textContent = '₹ ' + fmtMoney(grand);
+    }
+
+    async function savePoEdit(){
+        if (!PO_EDIT_CURRENT) return;
+        const items = PO_EDIT_CURRENT.items.map((it,i) => {
+            const tr = $('poEditItemsBody').querySelectorAll('tr')[i];
+            return { srNo: it.srNo, unitPrice: Number(tr.querySelector('.po-edit-unitprice').value) || 0 };
+        });
+        const payload = {
+            action: 'editPO',
+            poNo: PO_EDIT_CURRENT.poNo,
+            vendorName:     $('poEditVendorName').value.trim(),
+            vendorMail:     $('poEditVendorMail').value.trim(),
+            vendorAddress:  $('poEditVendorAddress').value.trim(),
+            vendorContact:  $('poEditVendorContact').value.trim(),
+            deliveryDate:   $('poEditDeliveryDate').value,
+            paymentTerms:   $('poEditPaymentTerms').value,
+            gstPercent:     Number($('poEditGstPct').value) || 0,
+            locationContact: $('poEditLocationContact').value.trim(),
+            freight:        Number($('poEditFreight').value) || 0,
+            otherExpenseLabel: $('poEditOtherLabel').value.trim() || 'Labour Other Exp.',
+            otherExpense:   Number($('poEditOtherExp').value) || 0,
+            importantNotes: $('poEditNotes').value.trim(),
+            items: items,
+            updatedBy: localStorage.getItem(UPDATED_BY_KEY) || ''
+        };
+        showSyncOverlay('Saving PO changes...');
+        try {
+            const result = await syncToCloud(payload);
+            hideSyncOverlay();
+            if (result.status === 'OK'){
+                showToast('&#9989; <b>'+result.poNo+'</b> updated. Grand Total: <b>₹'+fmtMoney(result.grandTotal)+'</b>', 'success', 6000);
+                if (result.pdfUrl) openPdfForPrint(result.pdfUrl, result.poNo);
+                closePoEditModal();
+                loadPoList();
+            } else {
+                showToast('&#10060; '+(result.message||'Update failed'), 'error', 8000);
+            }
+        } catch(err){
+            hideSyncOverlay();
+            showToast('&#10060; '+err.message, 'error', 8000);
+        }
+    }
+
+    function waGetCount(poNo){
+        try { const d = JSON.parse(localStorage.getItem(WA_COUNT_KEY) || '{}'); return d[poNo] || 0; } catch(e){ return 0; }
+    }
+    function waIncCount(poNo){
+        try {
+            const d = JSON.parse(localStorage.getItem(WA_COUNT_KEY) || '{}');
+            d[poNo] = (d[poNo] || 0) + 1;
+            localStorage.setItem(WA_COUNT_KEY, JSON.stringify(d));
+            return d[poNo];
+        } catch(e){ return 1; }
+    }
+    function buildWaLink(it){
+        const raw = String(it.vendorContact || '');
+        const digits = raw.replace(/\D/g, '');
+        let phone = '';
+        if (digits.length === 10)                            phone = '91' + digits;
+        else if (digits.length === 11 && digits[0] === '0') phone = '91' + digits.slice(1);
+        else if (digits.length === 12)                       phone = digits;
+        const msg = 'Dear ' + (it.vendorName || 'Vendor') + ',\n\n' +
+            'Kindly find our Purchase Order *' + it.poNo + '* dated ' + (it.poDate || '') + '.\n\n' +
+            'Items: ' + it.totalItems + ' | Qty: ' + (it.totalQty || 0) + ' | Grand Total: ₹' + fmtMoney(it.grandTotal) +
+            (it.pdfLink ? '\n\nPO PDF: ' + it.pdfLink : '') +
+            '\n\nPlease acknowledge receipt.\n\nRegards,\nSARV INDIA';
+        const base = phone ? 'https://wa.me/' + phone : 'https://wa.me/';
+        return base + '?text=' + encodeURIComponent(msg);
+    }
+
+    function renderPoList(items){
+        $('poListCount').textContent = items.length;
+        const tbody = $('poListBody');
+        if (!items.length){
+            tbody.innerHTML = '<tr><td colspan="13" class="empty-state"><div class="ico">📜</div>No POs found</td></tr>';
+            return;
+        }
+        tbody.innerHTML = items.map(it => {
+            const cnt = waGetCount(it.poNo);
+            const cntBadge = cnt > 0
+                ? '<span class="wa-cnt-badge" style="display:inline-block;background:#dcfce7;color:#15803d;border:1px solid #86efac;border-radius:10px;padding:1px 6px;font-size:10px;font-weight:700;margin-left:4px;" title="Sent '+cnt+' time(s)">'+cnt+'✓</span>'
+                : '<span class="wa-cnt-badge" style="display:none;background:#dcfce7;color:#15803d;border:1px solid #86efac;border-radius:10px;padding:1px 6px;font-size:10px;font-weight:700;margin-left:4px;"></span>';
+            const waTd = it.pdfLink
+                ? '<button class="btn btn-success btn-sm wa-send-btn" data-pono="'+escapeHtml(it.poNo)+'" style="background:linear-gradient(180deg,#25d366 0%,#128c7e 100%);padding:4px 8px;font-size:11px;" title="Send PO to vendor on WhatsApp">📱 WA</button>'+cntBadge
+                : '<small style="color:#94a3b8;">No PDF</small>';
+            // Recv Qty display — green if fully received, amber if partial, grey if zero
+            const rcvQty = it.totalReceived || 0;
+            const ordQty = it.totalOrdered || it.totalQty || 0;
+            const rcvColor = rcvQty >= ordQty && ordQty > 0 ? '#047857' : (rcvQty > 0 ? '#b45309' : '#94a3b8');
+            const rcvBg    = rcvQty >= ordQty && ordQty > 0 ? '#d1fae5' : (rcvQty > 0 ? '#fef3c7' : '');
+            return `
+            <tr>
+                <td><b style="color:#0284c7;">${escapeHtml(it.poNo)}</b></td>
+                <td>${escapeHtml(it.poDate||'')}</td>
+                <td><b>${escapeHtml(it.vendorName||'')}</b>${it.vendorMail?'<br><small style="color:#64748b;">📧 '+escapeHtml(it.vendorMail)+'</small>':''}</td>
+                <td><small>${escapeHtml(it.linkedReqNos||'')}</small></td>
+                <td style="text-align:center;">${it.totalItems}</td>
+                <td style="text-align:center;">${(it.totalQty||0).toLocaleString('en-IN')}</td>
+                <td style="text-align:center;color:${rcvColor};font-weight:700;background:${rcvBg};">${rcvQty.toLocaleString('en-IN')}${ordQty > 0 ? '<small style="color:#64748b;font-weight:400;"> / ' + ordQty.toLocaleString('en-IN') + '</small>' : ''}</td>
+                <td style="text-align:right;font-weight:700;">₹ ${fmtMoney(it.grandTotal)}</td>
+                <td><span class="badge ${statusBadgeClass(it.status)}">${escapeHtml(it.status||'Generated')}</span>${it.rejectedBy?'<br><small style="color:#991b1b;" title="'+escapeHtml(it.rejectReason||'')+'">by '+escapeHtml(it.rejectedBy)+'</small>':''}</td>
+                <td>${it.pdfLink?'<a href="'+escapeHtml(it.pdfLink)+'" target="_blank" style="color:#0284c7;text-decoration:underline;font-weight:700;">📄 PDF</a>':'<small style="color:#94a3b8;">No PDF</small>'}</td>
+                <td>${waTd}</td>
+                <td>${it.editable
+                    ? '<button class="btn btn-primary btn-sm po-edit-btn" data-pono="'+escapeHtml(it.poNo)+'" style="background:linear-gradient(180deg,#f59e0b 0%,#b45309 100%);" title="Editable for '+(it.editMinutesLeft||0)+' more minute(s)">✏️ Edit ('+(it.editMinutesLeft||0)+'m)</button>'
+                    : '<small style="color:#94a3b8;">—</small>'}</td>
+                <td>${it.cancellable
+                    ? '<button class="btn btn-sm po-cancel-btn" data-pono="'+escapeHtml(it.poNo)+'" style="background:linear-gradient(180deg,#ef4444 0%,#991b1b 100%);color:#fff;padding:4px 8px;font-size:11px;" title="Cancel this PO (qty will be released back to pending)">✖ Cancel</button>'
+                    : '<small style="color:#94a3b8;">—</small>'}</td>
+            </tr>`;
+        }).join('');
+
+        tbody.querySelectorAll('.po-edit-btn').forEach(btn => {
+            btn.addEventListener('click', () => openPoEditModal(btn.dataset.pono));
+        });
+
+        tbody.querySelectorAll('.po-cancel-btn').forEach(btn => {
+            btn.addEventListener('click', async () => {
+                const poNo = btn.dataset.pono;
+                if (!confirm('Are you sure you want to CANCEL PO ' + poNo + '?\n\nThis will release all item quantities back to the pending pool for new POs.')) return;
+                btn.disabled = true;
+                btn.textContent = '⏳ Cancelling...';
+                try {
+                    const result = await syncToCloud({ action: 'cancelPO', poNo: poNo, cancelledBy: localStorage.getItem('lastUser') || '' });
+                    if (result.status === 'OK') {
+                        showToast('✅ ' + (result.message || 'PO cancelled successfully.'), 'success', 5000);
+                        loadPoList();
+                    } else {
+                        showToast('❌ ' + (result.message || 'Cancel failed'), 'error', 6000);
+                        btn.disabled = false;
+                        btn.textContent = '✖ Cancel';
+                    }
+                } catch (err) {
+                    showToast('❌ Error: ' + err.message, 'error', 6000);
+                    btn.disabled = false;
+                    btn.textContent = '✖ Cancel';
+                }
+            });
+        });
+
+        tbody.querySelectorAll('.wa-send-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const poNo = btn.dataset.pono;
+                const it = items.find(x => x.poNo === poNo);
+                if (!it) return;
+                const newCnt = waIncCount(poNo);
+                window.open(buildWaLink(it), '_blank', 'noopener');
+                showToast('📱 WhatsApp opened for <b>'+escapeHtml(poNo)+'</b> &middot; Sent <b>'+newCnt+'</b> time(s)', 'success', 4000);
+                const badge = btn.nextElementSibling;
+                if (badge && badge.classList.contains('wa-cnt-badge')){
+                    badge.textContent = newCnt + '✓';
+                    badge.title = 'Sent ' + newCnt + ' time(s)';
+                    badge.style.display = 'inline-block';
+                }
+            });
+        });
+    }
+
+    /* ================================================================
+       =============== RECEIVING TAB FUNCTIONS ========================
+       ================================================================ */
+    let REC_POS_CACHE = [];
+    let REC_CURRENT_PO = null;
+
+    async function loadReceivingPOs(){
+        if (!URL_IS_CONFIGURED){
+            $('recPoBody').innerHTML = '<tr><td colspan="11" class="empty-state">⚠️ URL not configured.</td></tr>';
+            return;
+        }
+        showSyncOverlay('Loading open POs...');
+        try {
+            const result = await syncToCloud({
+                action: 'listPOsForReceiving',
+                search:     $('recFilterSearch').value.trim(),
+                status:     $('recFilterStatus').value,
+                poDateFrom: $('recFilterPoDateFrom').value,
+                poDateTo:   $('recFilterPoDateTo').value
+            });
+            hideSyncOverlay();
+            if (result.status !== 'OK'){
+                showToast('&#10060; '+(result.message||'Load failed'), 'error', 6000);
+                return;
+            }
+            REC_POS_CACHE = result.items || [];
+            renderReceivingPOs();
+        } catch(err){
+            hideSyncOverlay();
+            showToast('&#10060; '+err.message, 'error', 6000);
+        }
+    }
+
+    function renderReceivingPOs(){
+        const tbody = $('recPoBody');
+        const items = REC_POS_CACHE;
+        $('recPoCount').textContent = items.length;
+        let totOrd=0, totRcv=0, totPnd=0;
+        items.forEach(po => {
+            totOrd += Number(po.totalOrdered)  || 0;
+            totRcv += Number(po.totalReceived) || 0;
+            totPnd += Number(po.totalPending)  || 0;
+        });
+        $('recTotOrd').textContent = totOrd.toLocaleString('en-IN');
+        $('recTotRcv').textContent = totRcv.toLocaleString('en-IN');
+        $('recTotPnd').textContent = totPnd.toLocaleString('en-IN');
+
+        if (!items.length){
+            tbody.innerHTML = '<tr><td colspan="11" class="empty-state"><div class="ico">📥</div>No open POs to receive</td></tr>';
+            return;
+        }
+        tbody.innerHTML = items.map((po, idx) => {
+            const noData    = !po.hasItemData;
+            const noQty     = po.hasItemData && !po.hasValidItems;
+            const btnDisabled = noData || noQty;
+            // FIX F1: Store cache INDEX in data-recidx, NOT poNo — avoids
+            // escapeHtml encoding/decoding mismatch for PO Nos with special chars
+            const rcvBtn = btnDisabled
+                ? `<button class="btn btn-neutral btn-sm rec-open-btn" data-recidx="${idx}" title="${noQty ? 'All PO_Items rows have Qty=0. Check PO_Items sheet.' : 'No item lines found in PO_Items sheet'}">⚠️ Check Data</button>`
+                : `<button class="btn btn-success btn-sm rec-open-btn" data-recidx="${idx}">📥 Receive</button>`;
+            return `<tr${noData?' style="background:#fffbeb;"':''}>
+                <td><b style="color:#0284c7;">${escapeHtml(po.poNo)}</b>${noData?'<br><small style="color:#b45309;">⚠️ No item data</small>':(noQty?'<br><small style="color:#b45309;">⚠️ All items have Qty=0</small>':'')}</td>
+                <td>${escapeHtml(po.poDate||'')}</td>
+                <td><b>${escapeHtml(po.vendorName||'')}</b>${po.vendorMail?'<br><small style="color:#64748b;">📧 '+escapeHtml(po.vendorMail)+'</small>':''}</td>
+                <td><small>${escapeHtml(po.linkedReqNos||'')}</small></td>
+                <td style="text-align:center;">${noData?'—':po.totalItems}</td>
+                <td style="text-align:center;"><b>${noData?'—':po.pendingItems}</b></td>
+                <td style="text-align:center;">${noData?'—':(po.totalOrdered||0).toLocaleString('en-IN')}</td>
+                <td style="text-align:center;color:#047857;font-weight:700;">${noData?'—':(po.totalReceived||0).toLocaleString('en-IN')}</td>
+                <td style="text-align:center;background:#fef3c7;color:#b45309;font-weight:800;">${noData?'—':(po.totalPending||0).toLocaleString('en-IN')}</td>
+                <td><span class="badge ${statusBadgeClass(po.status)}">${escapeHtml(po.status||'Generated')}</span></td>
+                <td style="text-align:center;">${rcvBtn}</td>
+            </tr>`;
+        }).join('');
+
+        // FIX F1: look up by index, not by poNo string
+        tbody.querySelectorAll('.rec-open-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const cacheIdx = Number(btn.dataset.recidx);
+                openReceiveModal(cacheIdx);
+            });
+        });
+    }
+
+    // ── Receive Diagnostic Popup ──────────────────────────────────────────
+    function showReceiveDiag(po, checks){
+        const poNo = po ? po.poNo : '?';
+        $('rcvDiagSub').textContent = 'PO: ' + poNo;
+        const passIcon = '✅', failIcon = '❌', warnIcon = '⚠️';
+        let html = '<table style="width:100%;border-collapse:collapse;font-size:13px;">';
+        html += '<tr style="background:#1e293b;color:#fff;"><th style="padding:6px 8px;text-align:left;">Check</th><th style="width:50px;text-align:center;padding:6px;">Status</th><th style="padding:6px 8px;text-align:left;">Detail</th></tr>';
+        let hasFailure = false;
+        checks.forEach((c, i) => {
+            const bg = i % 2 === 0 ? '#f8fafc' : '#fff';
+            const icon = c.pass ? passIcon : (c.warn ? warnIcon : failIcon);
+            if (!c.pass && !c.warn) hasFailure = true;
+            const detailColor = c.pass ? '#047857' : (c.warn ? '#b45309' : '#dc2626');
+            html += '<tr style="background:' + bg + ';border-bottom:1px solid #e2e8f0;">';
+            html += '<td style="padding:6px 8px;font-weight:600;">' + c.label + '</td>';
+            html += '<td style="text-align:center;font-size:16px;">' + icon + '</td>';
+            html += '<td style="padding:6px 8px;color:' + detailColor + ';">' + c.detail + '</td>';
+            html += '</tr>';
+        });
+        html += '</table>';
+
+        if (hasFailure) {
+            html += '<div style="margin-top:12px;padding:10px;background:#fef2f2;border:1px solid #fecaca;border-radius:6px;color:#991b1b;font-size:12px;">';
+            html += '<b>🛠️ How to fix:</b> Open your Google Sheet → go to the <b>PO_Items</b> sheet → find rows for <b>' + poNo + '</b> → check the columns mentioned in ❌ checks above.';
+            html += '</div>';
+        }
+
+        if (po && po.items && po.items.length > 0) {
+            html += '<div style="margin-top:10px;font-weight:700;font-size:12px;color:#475569;">📋 Item Rows from PO_Items (backend returned ' + po.items.length + '):</div>';
+            html += '<table style="width:100%;border-collapse:collapse;font-size:11px;margin-top:4px;">';
+            html += '<tr style="background:#0f172a;color:#fff;"><th style="padding:4px;">Sr</th><th style="padding:4px;">Item Name</th><th style="padding:4px;">Req No</th><th style="padding:4px;">Req Sr</th><th style="padding:4px;">Ordered</th><th style="padding:4px;">Received</th><th style="padding:4px;">Pending</th></tr>';
+            po.items.forEach((it, i) => {
+                const bg = i % 2 === 0 ? '#f1f5f9' : '#fff';
+                const pendColor = it.pendingQty > 0 ? 'color:#b91c1c;font-weight:700;' : 'color:#047857;';
+                html += '<tr style="background:' + bg + ';">';
+                html += '<td style="padding:3px 4px;text-align:center;">' + (it.srNo||'') + '</td>';
+                html += '<td style="padding:3px 4px;">' + escapeHtml(it.itemName||'') + '</td>';
+                html += '<td style="padding:3px 4px;">' + escapeHtml(it.reqNo||'—') + '</td>';
+                html += '<td style="padding:3px 4px;text-align:center;">' + (it.reqSrNo||'—') + '</td>';
+                html += '<td style="padding:3px 4px;text-align:center;">' + (it.qty||0) + '</td>';
+                html += '<td style="padding:3px 4px;text-align:center;">' + (it.receivedQty||0) + '</td>';
+                html += '<td style="padding:3px 4px;text-align:center;' + pendColor + '">' + (it.pendingQty||0) + '</td>';
+                html += '</tr>';
+            });
+            html += '</table>';
+        }
+
+        $('rcvDiagBody').innerHTML = html;
+        $('rcvDiagModal').classList.add('active');
+    }
+
+    // FIX F1: Accept cache index — avoids string encoding/decoding mismatch
+    function openReceiveModal(cacheIdx){
+        const po = REC_POS_CACHE[Number(cacheIdx)];
+
+        // ── Run ALL diagnostic checks and collect results ──────────────────
+        const checks = [];
+
+        // Check 1: PO found in cache?
+        if (!po) {
+            checks.push({ label: 'Cache Lookup', pass: false,
+                detail: 'Index ' + cacheIdx + ' not found in REC_POS_CACHE (length=' + REC_POS_CACHE.length + '). Reload the list.' });
+            showReceiveDiag(null, checks);
+            return;
+        }
+        checks.push({ label: 'Cache Lookup', pass: true,
+            detail: 'PO "' + po.poNo + '" found at index ' + cacheIdx });
+
+        // Check 2: PO Status eligible?
+        const eligibleStatuses = ['MD Approved', 'Vendor Verified', 'Partially Received'];
+        const statusOk = eligibleStatuses.indexOf(po.status) !== -1;
+        checks.push({ label: 'PO Status', pass: statusOk,
+            detail: statusOk
+                ? 'Status = "' + po.status + '" (eligible for receiving)'
+                : 'Status = "' + po.status + '" — only MD Approved / Vendor Verified / Partially Received can receive. Check PO_Master sheet.' });
+
+        // Check 3: Has item data?
+        checks.push({ label: 'PO_Items Data', pass: po.hasItemData,
+            detail: po.hasItemData
+                ? po.totalItems + ' item row(s) found in PO_Items sheet'
+                : 'ZERO rows in PO_Items for this PO No. Items were never written — PO may have been created manually or generatePO_ failed. Check PO_Items sheet.' });
+
+        // Check 4: Has valid items (Qty > 0)?
+        if (po.hasItemData) {
+            checks.push({ label: 'Item Qty Check', pass: po.hasValidItems,
+                detail: po.hasValidItems
+                    ? po.totalItems + ' item(s) with Qty > 0'
+                    : 'ALL items have Qty = 0 or blank. Open PO_Items → find rows for ' + po.poNo + ' → fill Qty column.' });
+        }
+
+        // Check 5: Any pending items?
+        if (po.hasItemData && po.hasValidItems) {
+            const hasPending = po.pendingItems > 0;
+            checks.push({ label: 'Pending Qty', pass: hasPending, warn: !hasPending,
+                detail: hasPending
+                    ? po.pendingItems + ' of ' + po.totalItems + ' items still have pending qty (' + (po.totalPending||0) + ' units)'
+                    : 'All items are fully received (Pending = 0). Nothing left to receive.' });
+        }
+
+        // Check 6: Per-item data integrity
+        if (po.items && po.items.length > 0) {
+            const missingReqNo = po.items.filter(x => !x.reqNo || x.reqNo === '').length;
+            const missingReqSr = po.items.filter(x => !x.reqSrNo || x.reqSrNo === 0).length;
+            const zeroQty      = po.items.filter(x => x.qty <= 0).length;
+
+            if (missingReqNo > 0) {
+                checks.push({ label: 'Req No Check', pass: false,
+                    detail: missingReqNo + ' of ' + po.items.length + ' rows have BLANK "Req No" in PO_Items. Backend won\'t find matching Items_Detail row → receipt will partially fail. Fix: fill Req No column in PO_Items.' });
+            } else {
+                checks.push({ label: 'Req No Check', pass: true,
+                    detail: 'All ' + po.items.length + ' rows have Req No filled' });
+            }
+
+            if (missingReqSr > 0) {
+                checks.push({ label: 'Req Sr No Check', pass: false,
+                    detail: missingReqSr + ' of ' + po.items.length + ' rows have BLANK "Req Sr No" in PO_Items. Same issue as Req No — fix in PO_Items.' });
+            } else {
+                checks.push({ label: 'Req Sr No Check', pass: true,
+                    detail: 'All ' + po.items.length + ' rows have Req Sr No filled' });
+            }
+
+            if (zeroQty > 0 && po.hasValidItems) {
+                checks.push({ label: 'Zero Qty Rows', warn: true, pass: false,
+                    detail: zeroQty + ' row(s) have Qty = 0 and are excluded. Other rows are OK.' });
+            }
+        }
+
+        // ── If any FAIL (not warn) → show diagnostic, don't open modal ────
+        const hasFail = checks.some(c => !c.pass && !c.warn);
+        if (hasFail) {
+            showReceiveDiag(po, checks);
+            return;
+        }
+
+        // ── All checks passed → open the receive modal ────────────────────
+        REC_CURRENT_PO = po;
+        $('receiveModalSub').textContent = 'PO: ' + po.poNo + ' · Vendor: ' + po.vendorName;
+        $('rcvPoNoField').value     = po.poNo;
+        $('rcvVendorField').value   = po.vendorName || '';
+        $('rcvDateField').value     = todayISO();
+        $('rcvByField').value       = localStorage.getItem(UPDATED_BY_KEY) || '';
+        $('rcvGpField').value       = '';
+        $('rcvRemarksField').value  = '';
+
+        renderRcvBuildItems();
+        recalcRcvTotals();
+        $('receiveModal').classList.add('active');
+    }
+
+    function closeReceiveModal(){
+        $('receiveModal').classList.remove('active');
+        REC_CURRENT_PO = null;
+    }
+
+    function renderRcvBuildItems(){
+        const tbody = $('rcvBuildBody');
+        const items = REC_CURRENT_PO ? REC_CURRENT_PO.items : [];
+        tbody.innerHTML = items.map((it, i) => `
+            <tr data-idx="${i}" data-posrno="${it.srNo}">
+                <td style="text-align:center;font-weight:700;">${it.srNo}</td>
+                <td><b style="color:#0284c7;font-size:11px;">${escapeHtml(it.reqNo)}</b><br><small>Sr ${it.reqSrNo}</small></td>
+                <td><b>${escapeHtml(it.itemName||'')}</b><br><small style="color:#64748b;">${escapeHtml((it.itemDesc||'').slice(0,40))}</small></td>
+                <td>${escapeHtml(it.make||'')}</td>
+                <td>${escapeHtml(it.uom||'')}</td>
+                <td style="text-align:center;font-weight:700;">${(it.qty||0).toLocaleString('en-IN')}</td>
+                <td style="text-align:center;color:#047857;font-weight:700;">${(it.receivedQty||0).toLocaleString('en-IN')}</td>
+                <td style="text-align:center;background:#fef3c7;color:#b45309;font-weight:800;">${(it.pendingQty||0).toLocaleString('en-IN')}</td>
+                <td><input type="number" class="rcv-qty" min="0" max="${it.pendingQty||0}" step="any" value="0" ${it.pendingQty<=0?'disabled':''}></td>
+                <td><input type="number" class="rcv-grosswt" min="0" step="any" value="" placeholder="kg" style="background:#fef9c3;" ${it.pendingQty<=0?'disabled':''}></td>
+                <td><input type="text" class="rcv-remarks" placeholder="optional" ${it.pendingQty<=0?'disabled':''}></td>
+            </tr>
+        `).join('');
+
+        tbody.querySelectorAll('tr').forEach(tr => {
+            const idx = Number(tr.dataset.idx);
+            const it  = REC_CURRENT_PO.items[idx];
+            const inp = tr.querySelector('.rcv-qty');
+            inp.addEventListener('input', () => {
+                let v = Number(inp.value) || 0;
+                const maxV = Number(it.pendingQty) || 0;
+                if (v < 0) v = 0;
+                if (v > maxV) { v = maxV; inp.value = maxV; }
+                recalcRcvTotals();
+            });
+        });
+    }
+
+    function recalcRcvTotals(){
+        const items = REC_CURRENT_PO ? REC_CURRENT_PO.items : [];
+        let totOrd=0, totAlready=0, totPending=0, totNow=0;
+        document.querySelectorAll('#rcvBuildBody tr').forEach(tr => {
+            const idx = Number(tr.dataset.idx);
+            const it  = items[idx]; if (!it) return;
+            totOrd     += Number(it.qty)         || 0;
+            totAlready += Number(it.receivedQty) || 0;
+            totPending += Number(it.pendingQty)  || 0;
+            totNow     += Number(tr.querySelector('.rcv-qty').value) || 0;
+        });
+        $('rcvTotOrd').textContent     = totOrd.toLocaleString('en-IN');
+        $('rcvTotAlready').textContent = totAlready.toLocaleString('en-IN');
+        $('rcvTotPending').textContent = totPending.toLocaleString('en-IN');
+        $('rcvTotNow').textContent     = totNow.toLocaleString('en-IN');
+    }
+
+    function fillAllPending(){
+        document.querySelectorAll('#rcvBuildBody tr').forEach(tr => {
+            const idx = Number(tr.dataset.idx);
+            const it = REC_CURRENT_PO.items[idx];
+            const inp = tr.querySelector('.rcv-qty');
+            if (inp && !inp.disabled) inp.value = Number(it.pendingQty) || 0;
+        });
+        recalcRcvTotals();
+    }
+    function clearAllReceive(){
+        document.querySelectorAll('#rcvBuildBody .rcv-qty').forEach(inp => { if (!inp.disabled) inp.value = 0; });
+        recalcRcvTotals();
+    }
+
+    async function confirmReceive(){
+        if (!REC_CURRENT_PO) return;
+        const gp = $('rcvGpField').value.trim();
+        if (!gp){ showToast('&#9888; Gate Pass No required.', 'warn', 4000); $('rcvGpField').focus(); return; }
+        const recvBy = $('rcvByField').value.trim();
+        if (!recvBy){ showToast('&#9888; Received By required.', 'warn', 4000); $('rcvByField').focus(); return; }
+        const rcvDate = $('rcvDateField').value;
+        if (!rcvDate){ showToast('&#9888; Receipt Date required.', 'warn', 4000); $('rcvDateField').focus(); return; }
+        localStorage.setItem(UPDATED_BY_KEY, recvBy);
+
+        const items = [];
+        document.querySelectorAll('#rcvBuildBody tr').forEach(tr => {
+            const poSrNo = Number(tr.dataset.posrno);
+            const qty    = Number(tr.querySelector('.rcv-qty').value) || 0;
+            const grossReceivedWeight = Number(tr.querySelector('.rcv-grosswt').value) || 0;
+            const remarks= tr.querySelector('.rcv-remarks').value.trim();
+            if (qty > 0) items.push({ poSrNo, receivedQty: qty, grossReceivedWeight: grossReceivedWeight, remarks });
+        });
+
+        if (items.length === 0){
+            showToast('&#9888; Enter receive qty for at least one item.', 'warn', 4500);
+            return;
+        }
+
+        // Prevent double-submit: disable button for the duration of the async call.
+        const rcvBtn = $('rcvConfirmBtn');
+        if (rcvBtn) { rcvBtn.disabled = true; rcvBtn.textContent = 'Saving…'; }
+
+        showSyncOverlay('Saving receipt...');
+        try {
+            const result = await syncToCloud({
+                action: 'receivePOItems',
+                poNo:        REC_CURRENT_PO.poNo,
+                gatePassNo:  gp,
+                receiptDate: rcvDate,
+                receivedBy:  recvBy,
+                remarks:     $('rcvRemarksField').value.trim(),
+                items:       items
+            });
+            hideSyncOverlay();
+            if (result.status === 'OK'){
+                showToast('&#9989; '+result.message+' &middot; PO Status: <b>'+result.poStatus+'</b>', 'success', 7000);
+                closeReceiveModal();
+                loadReceivingPOs();
+            } else {
+                // Show diagnostic with per-item backend errors
+                const checks = [
+                    { label: 'Backend Response', pass: false,
+                      detail: result.message || 'Receipt failed — unknown backend error' }
+                ];
+                if (result.items && result.items.length > 0) {
+                    result.items.forEach(it => {
+                        if (it.error) {
+                            checks.push({ label: 'PO Sr ' + it.poSrNo, pass: false,
+                                detail: it.error + ' — check PO_Items sheet row for Sr No ' + it.poSrNo });
+                        } else if (it.skipped) {
+                            checks.push({ label: 'PO Sr ' + it.poSrNo, pass: true, warn: true,
+                                detail: 'Skipped (Qty = 0)' });
+                        } else if (it.ok) {
+                            checks.push({ label: 'PO Sr ' + it.poSrNo, pass: true,
+                                detail: 'Received ' + it.receivedQty + ' (cumulative: ' + it.cumulativeReceived + ')' });
+                        }
+                    });
+                }
+                showReceiveDiag(REC_CURRENT_PO, checks);
+                if (rcvBtn) { rcvBtn.disabled = false; rcvBtn.textContent = '📥 Save Receipt'; }
+            }
+        } catch(err){
+            hideSyncOverlay();
+            // Show diagnostic for network/script errors
+            const checks = [
+                { label: 'Network / Script Error', pass: false,
+                  detail: err.message || String(err) }
+            ];
+            if (REC_CURRENT_PO) {
+                checks.push({ label: 'PO No', pass: true, detail: REC_CURRENT_PO.poNo });
+                checks.push({ label: 'Items Sent', pass: true, detail: items.length + ' item(s) with qty > 0' });
+            }
+            showReceiveDiag(REC_CURRENT_PO, checks);
+            if (rcvBtn) { rcvBtn.disabled = false; rcvBtn.textContent = '📥 Save Receipt'; }
+        }
+    }
+
+    /* ================================================================
+       =============== SUMMARY TAB FUNCTIONS ==========================
+       ================================================================ */
+    let SUMMARY_CACHE = [];
+
+    function refreshSumDateActivePill(){
+        const anyDate = $('sumReqDateFrom').value || $('sumReqDateTo').value
+                     || $('sumPoDateFrom').value  || $('sumPoDateTo').value;
+        $('sumDateActivePill').style.display = anyDate ? 'inline-flex' : 'none';
+    }
+
+    function clearSummaryDateFilters(){
+        $('sumReqDateFrom').value = '';
+        $('sumReqDateTo').value   = '';
+        $('sumPoDateFrom').value  = '';
+        $('sumPoDateTo').value    = '';
+        refreshSumDateActivePill();
+        loadSummary();
+    }
+
+    async function loadSummary(){
+        if (!URL_IS_CONFIGURED){
+            $('summaryBody').innerHTML = '<tr><td colspan="16" class="empty-state">⚠️ URL not configured.</td></tr>';
+            return;
+        }
+        refreshSumDateActivePill();
+        const reqDF = $('sumReqDateFrom').value;
+        const reqDT = $('sumReqDateTo').value;
+        const poDF  = $('sumPoDateFrom').value;
+        const poDT  = $('sumPoDateTo').value;
+        // Validate from <= to
+        if (reqDF && reqDT && reqDF > reqDT){
+            showToast('&#9888; Request Date From cannot be after Request Date To.', 'warn', 4500);
+            return;
+        }
+        if (poDF && poDT && poDF > poDT){
+            showToast('&#9888; PO Date From cannot be after PO Date To.', 'warn', 4500);
+            return;
+        }
+        showSyncOverlay('Loading summary...');
+        try {
+            const result = await syncToCloud({
+                action: 'itemsSummary',
+                search:      $('sumFilterSearch').value.trim(),
+                status:      $('sumFilterStatus').value,
+                department:  $('sumFilterDept').value,
+                priority:    $('sumFilterPriority').value,
+                reqNo:       $('sumFilterReqNo').value.trim(),
+                reqDateFrom: reqDF,
+                reqDateTo:   reqDT,
+                poDateFrom:  poDF,
+                poDateTo:    poDT
+            });
+            hideSyncOverlay();
+            if (result.status !== 'OK'){
+                showToast('&#10060; '+(result.message||'Load failed'), 'error', 6000);
+                $('summaryBody').innerHTML = '';
+                return;
+            }
+            SUMMARY_CACHE = result.items || [];
+            renderSummary(SUMMARY_CACHE);
+        } catch(err){
+            hideSyncOverlay();
+            showToast('&#10060; '+err.message, 'error', 6000);
+        }
+    }
+
+    function renderSummary(items){
+        const tbody = $('summaryBody');
+        $('sumCount').textContent = items.length;
+        let tReq=0, tIss=0, tCan=0, tPo=0, tRcv=0;
+        items.forEach(it => {
+            tReq += Number(it.qtyRequested)   || 0;
+            tIss += Number(it.qtyIssued)      || 0;
+            tCan += Number(it.qtyCancelled)   || 0;
+            tPo  += Number(it.qtyPoGenerated) || 0;
+            tRcv += Number(it.qtyReceived)    || 0;
+        });
+        $('sumTotalReq').textContent      = tReq.toLocaleString('en-IN');
+        $('sumTotalIssued').textContent   = tIss.toLocaleString('en-IN');
+        $('sumTotalReceived').textContent = tRcv.toLocaleString('en-IN');
+        $('sumTotalCancel').textContent   = tCan.toLocaleString('en-IN');
+        $('sumTotalPO').textContent       = tPo.toLocaleString('en-IN');
+
+        if (!items.length){
+            tbody.innerHTML = '<tr><td colspan="16" class="empty-state"><div class="ico">📊</div>No items match filters</td></tr>';
+            return;
+        }
+        const numCell = (n) => {
+            const v = Number(n) || 0;
+            return '<td class="num' + (v === 0 ? ' zero' : '') + '">' + v.toLocaleString('en-IN') + '</td>';
+        };
+        tbody.innerHTML = items.map(it => {
+            const rcv = Number(it.qtyReceived) || 0;
+            const rcvCell = '<td class="num" style="background:'+(rcv>0?'#d1fae5':'#f8fafc')+';color:'+(rcv>0?'#047857':'#94a3b8')+';font-weight:800;">'+rcv.toLocaleString('en-IN')+'</td>';
+
+            // Build PO No cell (each PO No on its own line) and PO PDF cell (one link per PO)
+            const poLinks = Array.isArray(it.poLinks) && it.poLinks.length
+                ? it.poLinks
+                : (it.poNo ? String(it.poNo).split(',').map(x=>x.trim()).filter(Boolean).map(pn => ({poNo:pn, pdfLink:''})) : []);
+            const poNoCell = poLinks.length
+                ? poLinks.map((p,i) => '<div style="color:#1d4ed8;font-weight:700;font-size:11px;'+(i>0?'margin-top:2px;':'')+'">'+escapeHtml(p.poNo)+'</div>').join('')
+                : '<small style="color:#94a3b8;">-</small>';
+            const pdfCell = poLinks.length
+                ? poLinks.map((p,i) => p.pdfLink
+                    ? '<div style="'+(i>0?'margin-top:2px;':'')+'"><a href="'+escapeHtml(p.pdfLink)+'" target="_blank" title="'+escapeHtml(p.poNo)+'" style="color:#0284c7;text-decoration:underline;font-weight:700;font-size:11px;">📄 '+escapeHtml(p.poNo)+'</a></div>'
+                    : '<div style="'+(i>0?'margin-top:2px;':'')+'"><small style="color:#94a3b8;">'+escapeHtml(p.poNo)+' (no PDF)</small></div>'
+                  ).join('')
+                : '<small style="color:#94a3b8;">-</small>';
+
+            return `
+            <tr>
+                <td><b style="color:#0284c7;">${escapeHtml(it.reqNo)}</b></td>
+                <td>${escapeHtml(it.reqDate||'')}</td>
+                <td>${escapeHtml(it.personName||'')}</td>
+                <td><b>${escapeHtml(it.itemName||'')}</b></td>
+                <td><small style="color:#475569;">${escapeHtml(it.itemDesc||'')}</small></td>
+                <td>${escapeHtml(it.make||'')}</td>
+                <td>${escapeHtml(it.category||'')}</td>
+                ${numCell(it.qtyRequested)}
+                ${numCell(it.qtyIssued)}
+                ${numCell(it.qtyCancelled)}
+                ${numCell(it.qtyPoGenerated)}
+                ${rcvCell}
+                <td>${it.gatePassNo ? '<small style="color:#b45309;font-weight:700;">'+escapeHtml(it.gatePassNo)+'</small>' : '<small style="color:#94a3b8;">-</small>'}</td>
+                <td><span class="badge ${statusBadgeClass(it.itemStatus)}">${escapeHtml(it.itemStatus||'Pending')}</span></td>
+                <td>${poNoCell}</td>
+                <td>${pdfCell}</td>
+            </tr>`;
+        }).join('');
+    }
+
+    function exportSummaryCsv(){
+        if (!SUMMARY_CACHE.length){ showToast('&#9888; Nothing to export.', 'warn', 3000); return; }
+        const headers = ['Requirement No','Request Date','Person Name','Item Name','Item Description',
+            'Make / Brand','Category','Qty Requested','Qty Issued','Qty Cancelled',
+            'Qty PO Generated','Received Qty','Gate Pass No','Item Status','PO No','PO PDF Link'];
+        const rows = SUMMARY_CACHE.map(it => {
+            const allPoNos = (it.poLinks && it.poLinks.length)
+                ? it.poLinks.map(p => p.poNo).join(' | ')
+                : (it.poNo || '');
+            const allPdfs = (it.poLinks && it.poLinks.length)
+                ? it.poLinks.filter(p => p.pdfLink).map(p => p.pdfLink).join(' | ')
+                : (it.poPdfLink || '');
+            return [
+                it.reqNo, it.reqDate, it.personName, it.itemName, it.itemDesc,
+                it.make, it.category, it.qtyRequested, it.qtyIssued, it.qtyCancelled,
+                it.qtyPoGenerated, it.qtyReceived, it.gatePassNo,
+                it.itemStatus, allPoNos, allPdfs
+            ];
+        });
+        const all = [headers].concat(rows);
+        const csv = all.map(row => row.map(cell => {
+            const s = String(cell == null ? '' : cell);
+            if (/[",\n]/.test(s)) return '"' + s.replace(/"/g,'""') + '"';
+            return s;
+        }).join(',')).join('\r\n');
+        const blob = new Blob([ '﻿' + csv ], { type: 'text/csv;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        const stamp = todayISO().replace(/-/g,'');
+        a.download = 'SARV_Summary_' + stamp + '.csv';
+        document.body.appendChild(a); a.click(); document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        showToast('&#128190; Summary CSV exported.', 'success', 3000);
+    }
+
+    /* ---------- ENTRY FORM LOCK — startup verification gate ---------- */
+    function lockEntryForm(msg, isError) {
+        const card = document.querySelector('#tab-entry .card');
+        if (!card) return;
+        let ov = $('entryFormLockOverlay');
+        if (!ov) {
+            ov = document.createElement('div');
+            ov.id = 'entryFormLockOverlay';
+            ov.className = 'form-lock-overlay';
+            card.appendChild(ov);
+        }
+        if (isError) {
+            ov.innerHTML =
+                '<div style="font-size:42px;margin-bottom:10px;">&#128308;</div>' +
+                '<div style="font-size:15px;font-weight:800;color:#dc2626;margin-bottom:6px;">' + msg + '</div>' +
+                '<div style="font-size:12px;color:#64748b;margin-bottom:14px;">Form is locked until sheet &amp; serial number are verified.</div>' +
+                '<button onclick="startupVerify()" style="padding:9px 22px;background:#0284c7;color:#fff;border:none;border-radius:7px;font-weight:700;cursor:pointer;font-size:13px;">&#128260; Retry Connection</button>';
+        } else {
+            ov.innerHTML =
+                '<div style="font-size:42px;margin-bottom:10px;">&#128274;</div>' +
+                '<div style="font-size:15px;font-weight:800;color:#1e293b;margin-bottom:6px;">' + (msg || 'Verifying sheet connection &amp; serial number…') + '</div>' +
+                '<div style="font-size:12px;color:#64748b;">Please wait…</div>';
+        }
+        ov.style.display = 'flex';
+    }
+
+    function unlockEntryForm() {
+        const ov = $('entryFormLockOverlay');
+        if (ov) ov.remove();
+    }
+
+    async function startupVerify() {
+        if (!URL_IS_CONFIGURED) {
+            $('syncStatus').textContent = 'NOT CONFIGURED';
+            $('syncStatus').className = 'sync-status offline';
+            $('setupBanner').style.display = 'block';
+            lockEntryForm('Apps Script URL not configured — add the URL to the HTML file and refresh.', true);
+            return;
+        }
+
+        const el = $('syncStatus');
+        const MAX_RETRIES = 3;
+        const TIMEOUT_MS  = 30000;  // 30s per attempt (GAS cold starts can take 15-20s)
+
+        // ── Helper: fetch with timeout ──
+        async function fetchWithTimeout(url, options, timeoutMs) {
+            const ctrl = new AbortController();
+            const timer = setTimeout(() => ctrl.abort(), timeoutMs);
+            try {
+                const res = await fetch(url, { ...options, signal: ctrl.signal });
+                return res;
+            } finally {
+                clearTimeout(timer);
+            }
+        }
+
+        // ── STEP 1: Health check (GET) — with retry ──
+        lockEntryForm('Connecting to Google Sheet… (first load may take 15-20 seconds)');
+        el.textContent = 'CONNECTING…'; el.className = 'sync-status checking';
+
+        let json = null;
+        let lastError = '';
+        for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+            if (attempt > 1) {
+                lockEntryForm('Retry ' + attempt + '/' + MAX_RETRIES + ' — connecting to Google Sheet…');
+                el.textContent = 'RETRY ' + attempt + '…'; el.className = 'sync-status checking';
+            }
+            try {
+                const res = await fetchWithTimeout(APPS_SCRIPT_URL, { method: 'GET', redirect: 'follow' }, TIMEOUT_MS);
+                const text = await res.text();
+                // GAS sometimes returns HTML login/error page
+                if (text.trim().startsWith('<!DOCTYPE') || text.trim().startsWith('<html')) {
+                    lastError = 'Google returned an HTML page (login screen or error) instead of JSON. You may need to re-authorize the Apps Script deployment.';
+                    continue;
+                }
+                try { json = JSON.parse(text); } catch(pe) {
+                    lastError = 'Response is not valid JSON: ' + text.slice(0, 200);
+                    continue;
+                }
+                if (json && json.ok) break; // ✅ Success
+                lastError = json.error || json.message || 'Backend returned ok:false';
+                json = null;
+            } catch(netErr) {
+                if (netErr.name === 'AbortError') {
+                    lastError = 'Connection timed out (' + (TIMEOUT_MS/1000) + 's). GAS cold start may need more time.';
+                } else {
+                    lastError = netErr.message || 'Network error';
+                }
+            }
+        }
+
+        if (!json || !json.ok) {
+            el.innerHTML = '&#9679; OFFLINE'; el.className = 'sync-status offline';
+            lockEntryForm('❌ Cannot connect after ' + MAX_RETRIES + ' tries.\n\nLast error: ' + lastError + '\n\nTip: Refresh the page, or check if the Apps Script Web App URL is correct and deployed as "Anyone".', true);
+            return;
+        }
+
+        el.innerHTML = '&#9679; SHEET ONLINE'; el.className = 'sync-status online';
+        showToast('&#9989; Connected: <b>' + escapeHtml(json.spreadsheet || '') + '</b>', 'success', 3500);
+
+        // ── STEP 2: Fetch PR serial number (POST) — with retry ──
+        lockEntryForm('Fetching PR serial number…');
+        let reqNo = null;
+        let step2Error = '';
+        for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+            if (attempt > 1) {
+                lockEntryForm('Retry ' + attempt + '/' + MAX_RETRIES + ' — fetching serial number…');
+            }
+            try {
+                const r = await syncToCloud({ action: 'nextReqNo' });
+                if (r && r.status === 'OK' && r.reqNo) { reqNo = r.reqNo; break; }
+                step2Error = (r && r.message) ? r.message : 'Unexpected response: ' + JSON.stringify(r).slice(0, 200);
+            } catch(e) {
+                step2Error = e.message || 'Network error on POST';
+            }
+        }
+
+        if (!reqNo) {
+            el.innerHTML = '&#9679; ERROR'; el.className = 'sync-status offline';
+            lockEntryForm('❌ Sheet is online but could not fetch PR serial number.\n\nError: ' + step2Error + '\n\nTip: Open the Google Sheet → Extensions → Apps Script → Run any function manually to trigger re-authorization.', true);
+            return;
+        }
+
+        // ── Both checks passed — unlock the form ──
+        $('reqNoField').value = reqNo;
+        $('draftInfo').textContent = '✅ Sheet verified · Serial: ' + reqNo + ' · Ready to enter.';
+        unlockEntryForm();
+
+        // Load item library for autocomplete (non-blocking — failure is silent)
+        loadItemLibrary();
+    }
+
     /* ---------- INIT ---------- */
     $('reqDate').value        = todayISO();
     $('requiredByDate').value = todayISO();
-    const restored = loadDraft();
-    if (!restored) addItemRow();
-    $('reqNoField').value = generateReqNo();
+    // No auto-fill from draft or localStorage on page load — always start fresh.
+    addItemRow();
+    $('reqNoField').value = '― Verifying ―';
+    startupVerify();
 
     /* ---------- EVENT WIRING ---------- */
     $('addItemBtn').addEventListener('click', ()=> addItemRow());
 
     ['reqDate','requiredByDate','priority','reqPersonName','reqEmpCode','reqDesignation',
-     'reqDepartment','reqContact','reqMachine','reqPurpose','overallRemarks']
+     'reqDepartment','reqContact','reqMachine','reqPurpose','overallRemarks','reqGeneratedBy']
     .forEach(id=>{
         $(id).addEventListener('input', saveDraft);
         $(id).addEventListener('change', ()=>{ recalcTotals(); saveDraft(); });
+    });
+
+    /* #4 cancel-edit button */
+    $('cancelEditBtn').addEventListener('click', ()=>{
+        exitEditMode();
+        localStorage.removeItem(DRAFT_KEY);
+        resetForm(false);
+        showToast('Edit cancelled.', 'success', 2500);
     });
 
     $('clearBtn').addEventListener('click', ()=>{
@@ -1785,6 +4221,7 @@
     });
 
     $('saveAllItemsBtn').addEventListener('click', saveAllItemChanges);
+    $('editReqBtn').addEventListener('click', ()=>{ if (CURRENT_DETAIL) enterEditMode(CURRENT_DETAIL); });
     $('closeMasterBtn').addEventListener('click', ()=> openMasterActionModal('close'));
     $('cancelMasterBtn').addEventListener('click', ()=> openMasterActionModal('cancel'));
     $('openPdfBtn').addEventListener('click', openCurrentPdf);
@@ -1793,8 +4230,100 @@
     $('masterActionConfirmBtn').addEventListener('click', confirmMasterAction);
     $('masterActionModal').addEventListener('click', (e)=>{ if (e.target.id === 'masterActionModal') closeMasterActionModal(); });
 
+    /* ---- PO TAB EVENT WIRING ---- */
+    $('poSubPendingBtn').addEventListener('click', ()=> showPoSubPanel('pending'));
+    $('poSubListBtn').addEventListener('click',    ()=> showPoSubPanel('list'));
+    $('poRefreshBtn').addEventListener('click', loadPoPending);
+    $('poListRefreshBtn').addEventListener('click', loadPoList);
+    ['poFilterDept','poFilterPriority'].forEach(id=>{
+        $(id).addEventListener('change', loadPoPending);
+    });
+    let poSearchDeb;
+    $('poFilterSearch').addEventListener('input', ()=>{
+        clearTimeout(poSearchDeb);
+        poSearchDeb = setTimeout(loadPoPending, 400);
+    });
+    $('poFilterReqNo').addEventListener('input', ()=>{
+        clearTimeout(poSearchDeb);
+        poSearchDeb = setTimeout(loadPoPending, 400);
+    });
+    let poListSearchDeb;
+    $('poListSearch').addEventListener('input', ()=>{
+        clearTimeout(poListSearchDeb);
+        poListSearchDeb = setTimeout(loadPoList, 400);
+    });
+    $('poListStatus').addEventListener('change', loadPoList);
+
+    $('poSelectAll').addEventListener('change', () => {
+        const checked = $('poSelectAll').checked;
+        document.querySelectorAll('#poPendingBody .po-check').forEach(c => {
+            if (c.checked !== checked) {
+                c.checked = checked;
+                c.dispatchEvent(new Event('change'));
+            }
+        });
+    });
+
+    $('poBuildBtn').addEventListener('click', openPoBuildModal);
+    $('poBuildCancelBtn').addEventListener('click', closePoBuildModal);
+    $('poBuildConfirmBtn').addEventListener('click', confirmPoBuild);
+    initPoAttachUpload(); // Image attachment handler for PO build
+    $('poEditCancelBtn').addEventListener('click', closePoEditModal);
+    $('poEditSaveBtn').addEventListener('click', savePoEdit);
+    ['poEditFreight','poEditOtherExp','poEditGstPct'].forEach(id=>{
+        $(id).addEventListener('input', recalcPoEditTotal);
+    });
+    $('poBuildModal').addEventListener('click', (e)=>{ if (e.target.id === 'poBuildModal') closePoBuildModal(); });
+    $('poStoreSignClearBtn').addEventListener('click', clearStoreSignCanvas);
+    /* #13 vendor auto-fill on blur / selection from datalist */
+    $('poVendorField').addEventListener('change', applyVendorAutofill);
+    $('poVendorField').addEventListener('blur',   applyVendorAutofill);
+    ['poGstPctField','poFreightField','poOtherExpField','poOtherLabelField'].forEach(id=>{
+        $(id).addEventListener('input', recalcPoBuildTotals);
+    });
+
+    /* ---- RECEIVING TAB EVENT WIRING ---- */
+    $('recRefreshBtn').addEventListener('click', loadReceivingPOs);
+    $('recFilterStatus').addEventListener('change', loadReceivingPOs);
+    ['recFilterPoDateFrom','recFilterPoDateTo'].forEach(id => {
+        $(id).addEventListener('change', loadReceivingPOs);
+    });
+    let recSearchDeb;
+    $('recFilterSearch').addEventListener('input', () => {
+        clearTimeout(recSearchDeb);
+        recSearchDeb = setTimeout(loadReceivingPOs, 400);
+    });
+
+    $('rcvCancelBtn').addEventListener('click', closeReceiveModal);
+    $('rcvConfirmBtn').addEventListener('click', confirmReceive);
+    $('rcvFillPendingBtn').addEventListener('click', fillAllPending);
+    $('rcvClearAllBtn').addEventListener('click', clearAllReceive);
+    $('receiveModal').addEventListener('click', (e)=>{ if (e.target.id === 'receiveModal') closeReceiveModal(); });
+    $('rcvDiagModal').addEventListener('click', (e)=>{ if (e.target.id === 'rcvDiagModal') $('rcvDiagModal').classList.remove('active'); });
+
+    /* ---- SUMMARY TAB EVENT WIRING ---- */
+    $('sumRefreshBtn').addEventListener('click', loadSummary);
+    $('sumExportCsvBtn').addEventListener('click', exportSummaryCsv);
+    $('sumClearDatesBtn').addEventListener('click', clearSummaryDateFilters);
+    ['sumFilterStatus','sumFilterDept','sumFilterPriority'].forEach(id=>{
+        $(id).addEventListener('change', loadSummary);
+    });
+    // Date filters fire on change (date pickers don't fire on each keystroke)
+    ['sumReqDateFrom','sumReqDateTo','sumPoDateFrom','sumPoDateTo'].forEach(id=>{
+        $(id).addEventListener('change', ()=>{ refreshSumDateActivePill(); loadSummary(); });
+    });
+    let sumSearchDeb;
+    $('sumFilterSearch').addEventListener('input', ()=>{
+        clearTimeout(sumSearchDeb);
+        sumSearchDeb = setTimeout(loadSummary, 400);
+    });
+    $('sumFilterReqNo').addEventListener('input', ()=>{
+        clearTimeout(sumSearchDeb);
+        sumSearchDeb = setTimeout(loadSummary, 400);
+    });
+
     document.addEventListener('keydown', (e)=>{
-        if (e.key === 'Escape'){ closeConfirmModal(); closeMasterActionModal(); }
+        if (e.key === 'Escape'){ closeConfirmModal(); closeMasterActionModal(); closePoBuildModal(); closePoEditModal(); closeReceiveModal(); $('rcvDiagModal').classList.remove('active'); }
         if ((e.ctrlKey || e.metaKey) && e.key === 'Enter'){
             e.preventDefault();
             if (document.querySelector('.nav-link.active').dataset.tab === 'entry'){
@@ -1803,19 +4332,39 @@
         }
     });
 
+    /* #19 auto-clear a pre-filled 0 when a numeric field gains focus, so users
+       don't have to delete it before typing. Restores 0 on blur if left blank. */
+    document.addEventListener('focusin', (e)=>{
+        const t = e.target;
+        if (t && t.tagName === 'INPUT' && t.type === 'number'){
+            if (t.value === '0' || t.value === '0.00') { t.dataset._wasZero = '1'; t.value = ''; }
+        }
+    });
+    document.addEventListener('focusout', (e)=>{
+        const t = e.target;
+        if (t && t.tagName === 'INPUT' && t.type === 'number' && t.dataset._wasZero === '1'){
+            if (t.value.trim() === '') t.value = '0';
+            delete t.dataset._wasZero;
+        }
+    });
+
     recalcTotals();
 
-    if (URL_IS_CONFIGURED){
-        verifyBackend();
-        setTimeout(flushPendingQueue, 2000);
-    } else {
-        $('syncStatus').textContent = 'NOT CONFIGURED';
-        $('syncStatus').className = 'sync-status offline';
-        $('setupBanner').style.display = 'block';
-    }
+    // startupVerify() (called from INIT above) handles backend check, serial fetch,
+    // form lock/unlock, and the NOT CONFIGURED case.
+    if (URL_IS_CONFIGURED) setTimeout(flushPendingQueue, 2000);
 
     window.SARV_DEBUG = {
-        verifyBackend, flushPendingQueue, loadRequirementsList, loadRequirementDetail,
+        startupVerify, verifyBackend, unlockEntryForm,
+        loadItemLibrary, getItemLibrary: ()=> ITEM_LIBRARY,
+        flushPendingQueue, loadRequirementsList, loadRequirementDetail,
+        loadPoPending, loadPoList, openPoBuildModal, closePoBuildModal,
+        loadReceivingPOs, openReceiveModal, closeReceiveModal,
+        loadSummary, exportSummaryCsv,
+        getSelected: ()=> Array.from(PO_SELECTED.values()),
+        clearSelection: clearPoSelection,
+        getReceivingPOs: ()=> REC_POS_CACHE,
+        getSummary: ()=> SUMMARY_CACHE,
         getPending: ()=> JSON.parse(localStorage.getItem(PENDING_KEY) || '[]'),
         clearPending: ()=> localStorage.removeItem(PENDING_KEY),
         isConfigured: URL_IS_CONFIGURED, currentUrl: APPS_SCRIPT_URL
